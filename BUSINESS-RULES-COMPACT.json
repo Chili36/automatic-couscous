@@ -1,0 +1,145 @@
+{
+  "termTypeRules": {
+    "r": {
+      "name": "Raw Commodity",
+      "allowedFacets": ["F27", "F28"],
+      "forbiddenFacets": ["F01", "F03", "F04"],
+      "warnings": {
+        "F03": "Would create derivative (BR13)",
+        "F04": "Ingredient facets not for raw commodities (BR12)"
+      },
+      "specialRules": [
+        "F27 must be child of base term (BR01)",
+        "Some processes forbidden for specific raw terms (BR19)"
+      ]
+    },
+    "d": {
+      "name": "Derivative",
+      "allowedFacets": ["F01", "F27", "F28", "F03"],
+      "conditionalFacets": {
+        "F01": "Only if single F27 present (BR06/BR07)",
+        "F27": "Must be more specific than implicit (BR05)"
+      },
+      "warnings": {
+        "F04": "Ingredient facets cause warning (BR12)"
+      }
+    },
+    "c": {
+      "name": "Composite",
+      "allowedFacets": ["F04", "F28"],
+      "forbiddenFacets": ["F01", "F27"],
+      "errors": {
+        "F01": "Source facets forbidden on composites (BR03)",
+        "F27": "Source commodities forbidden on composites (BR04)"
+      }
+    },
+    "s": {
+      "name": "Simple Composite",
+      "allowedFacets": ["F04", "F28"],
+      "forbiddenFacets": ["F01", "F27"],
+      "errors": {
+        "F01": "Source facets forbidden on composites (BR03)",
+        "F27": "Source commodities forbidden on composites (BR04)"
+      }
+    },
+    "h": {
+      "name": "Hierarchy",
+      "warning": "Should not be used as base term (BR23/BR24)"
+    },
+    "g": {
+      "name": "Group",
+      "warning": "Should not be used as base term (BR23/BR24)"
+    },
+    "f": {
+      "name": "Facet",
+      "error": "Cannot be used as base term (BR17)"
+    }
+  },
+  "singleCardinalityFacets": [
+    "F03", "F11", "F17", "F20", "F22", "F23", "F24", "F26", "F29", "F30", "F31", "F32", "F33"
+  ],
+  "processOrdinalGroups": {
+    "1": {
+      "name": "Heating methods",
+      "mutuallyExclusive": true,
+      "examples": ["1.1 Baking", "1.2 Boiling", "1.3 Frying"]
+    },
+    "2": {
+      "name": "Preservation",
+      "mutuallyExclusive": true,
+      "examples": ["2.1 Canning", "2.2 Freezing"]
+    },
+    "3": {
+      "name": "Physical treatments",
+      "mutuallyExclusive": true,
+      "examples": ["3.1 Cutting", "3.2 Grinding"]
+    },
+    "0": {
+      "name": "Non-exclusive",
+      "mutuallyExclusive": false
+    }
+  },
+  "facetCategories": {
+    "F01": {
+      "name": "Source",
+      "description": "Animal source for derivatives",
+      "restriction": "Only on derivatives with single F27"
+    },
+    "F03": {
+      "name": "Physical state",
+      "description": "Liquid, solid, etc.",
+      "restriction": "Single cardinality, creates derivatives from raw"
+    },
+    "F04": {
+      "name": "Characterizing ingredient",
+      "description": "Minor ingredients in composites",
+      "restriction": "Primarily for composites, warning on raw/derivatives"
+    },
+    "F27": {
+      "name": "Source commodities",
+      "description": "Plant/animal source materials",
+      "restriction": "Must follow hierarchy rules, forbidden on composites"
+    },
+    "F28": {
+      "name": "Process",
+      "description": "Processing methods applied",
+      "restriction": "Check ordinal codes for mutual exclusivity"
+    }
+  },
+  "validationExamples": {
+    "valid": [
+      {
+        "code": "A000V#F28.A07KQ",
+        "description": "Raw corn + Freezing",
+        "reason": "F28 allowed on raw commodities"
+      },
+      {
+        "code": "A002C#F01.A0F6E$F27.A000V",
+        "description": "Cereal bran from cow, from corn",
+        "reason": "Derivative with single F27 can have F01"
+      },
+      {
+        "code": "A00BZ#F04.A01DJ",
+        "description": "Fruit pie with apples",
+        "reason": "F04 appropriate for composites"
+      }
+    ],
+    "invalid": [
+      {
+        "code": "A000V#F03.A0F6F",
+        "description": "Raw corn + liquid state",
+        "error": "BR13: F03 would create derivative"
+      },
+      {
+        "code": "A00BZ#F27.A000V",
+        "description": "Fruit pie + source commodity",
+        "error": "BR04: F27 forbidden on composites"
+      },
+      {
+        "code": "A002C#F28.A07JN$F28.A07JP",
+        "description": "Derivative + two heating methods",
+        "error": "BR26: Mutually exclusive processes"
+      }
+    ]
+  }
+}
