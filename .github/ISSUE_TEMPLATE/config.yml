@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Question or Discussion
+    url: https://github.com/Chili36/automatic-couscous/discussions
+    about: Please ask and answer questions in Discussions
+  - name: EFSA FoodEx2 Documentation
+    url: https://www.efsa.europa.eu/en/data-report/foodex2-browsing-tool
+    about: Official EFSA documentation for FoodEx2 system
