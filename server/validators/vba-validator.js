@@ -93,7 +93,8 @@ class VBAValidator {
         // Check for invalid characters (only alphanumeric allowed)
         if (!/^[A-Z0-9]{5}$/.test(baseTermCode)) {
             warnings.push({
-                message: '-Base term contains invalid characters or wrong length-',
+                rule: 'VBA-STRUCT',
+                message: 'Base term contains invalid characters or wrong length (must be 5 alphanumeric characters)',
                 severity: 'ERROR',
                 type: 'STRUCTURE'
             });
@@ -112,7 +113,8 @@ class VBAValidator {
 
         if (!term) {
             warnings.push({
-                message: '-Base term not found-',
+                rule: 'VBA-NOTFOUND',
+                message: `Base term ${baseTermCode} not found in database`,
                 severity: 'ERROR',
                 type: 'NOT_FOUND'
             });
@@ -145,7 +147,8 @@ class VBAValidator {
             // Check for missing dot separator
             if (parts.length !== 2) {
                 warnings.push({
-                    message: `-Expected '.' after facet group in ${facet}-`,
+                    rule: 'VBA-FORMAT',
+                    message: `Invalid facet format: Expected '.' separator in '${facet}' (format should be Fxx.YYYYY)`,
                     severity: 'ERROR',
                     type: 'STRUCTURE'
                 });
@@ -158,7 +161,8 @@ class VBAValidator {
             // Check facet group format (Fxx - F followed by 2 digits)
             if (!/^F\d{2}$/.test(groupId)) {
                 warnings.push({
-                    message: `-Facet group not correct (${groupId})-`,
+                    rule: 'VBA-GROUP',
+                    message: `Invalid facet group '${groupId}' (must be F followed by 2 digits, e.g., F01, F28)`,
                     severity: 'ERROR',
                     type: 'STRUCTURE'
                 });
@@ -169,7 +173,8 @@ class VBAValidator {
             // Check descriptor format (5 alphanumeric characters)
             if (!/^[A-Z0-9]{5}$/.test(descriptor)) {
                 warnings.push({
-                    message: `-Facet term not correct (${descriptor})-`,
+                    rule: 'VBA-DESCRIPTOR',
+                    message: `Invalid facet descriptor '${descriptor}' in ${groupId} (must be 5 alphanumeric characters)`,
                     severity: 'ERROR',
                     type: 'STRUCTURE'
                 });
@@ -208,7 +213,8 @@ class VBAValidator {
 
         if (implicitRemoved) {
             warnings.push({
-                message: '-Implicit facet/s removed-',
+                rule: 'VBA-IMPLICIT',
+                message: 'Implicit facets were automatically removed (already included in base term)',
                 severity: 'HIGH',
                 type: 'IMPLICIT_REMOVED'
             });
@@ -231,7 +237,8 @@ class VBAValidator {
 
         if (!term) {
             warnings.push({
-                message: '-Facet descriptor not found-',
+                rule: 'VBA-FACET404',
+                message: `Facet descriptor '${descriptor}' not found in database`,
                 severity: 'ERROR',
                 type: 'NOT_FOUND',
                 facet: facetCode
@@ -239,16 +246,40 @@ class VBAValidator {
             return false;
         }
 
-        // Map facet group to hierarchy code
+        // Map facet group to hierarchy code (from attributes table)
+        // IMPORTANT: These mappings come directly from the database attributes table
         const hierarchyMap = {
             'F01': 'source',
             'F02': 'part',
-            'F03': 'physt',
+            'F03': 'state',      // Physical state
             'F04': 'ingred',
+            'F06': 'medium',
+            'F07': 'fat',
+            'F08': 'sweet',
+            'F09': 'fort',
+            'F10': 'qual',
+            'F11': 'alcohol',
+            'F12': 'dough',
+            'F17': 'cookext',
+            'F18': 'packformat',
+            'F19': 'packmat',
+            'F20': 'partcon',    // Part consumed/analysed
+            'F21': 'prod',
+            'F22': 'place',
+            'F23': 'targcon',
+            'F24': 'use',
+            'F25': 'riskingred',
+            'F26': 'gen',
             'F27': 'racsource',
-            'F28': 'process'
+            'F28': 'process',
+            'F29': 'fpurpose',
+            'F30': 'replev',
+            'F31': 'animage',
+            'F32': 'gender',
+            'F33': 'legis',
+            'F34': 'hostsampled'
         };
-        
+
         const hierarchyCode = hierarchyMap[groupId] || groupId.toLowerCase();
         
         // Also validate it belongs to the correct facet group hierarchy
@@ -260,11 +291,109 @@ class VBAValidator {
         `, [descriptor, hierarchyCode]);
 
         if (!belongsToGroup) {
+            // Get the friendly names for the facet group
+            const facetGroupNames = {
+                'F01': 'Source (animal/plant origin)',
+                'F02': 'Part-nature (part of plant/animal)',
+                'F03': 'Physical state',
+                'F04': 'Ingredient',
+                'F05': 'Reserved',  // Not used in current schema
+                'F06': 'Medium',
+                'F07': 'Fat content',
+                'F08': 'Sweetening agent',
+                'F09': 'Fortification agent',
+                'F10': 'Qualitative info',
+                'F11': 'Alcohol content',
+                'F12': 'Dough',
+                'F13': 'Reserved',  // Not used
+                'F14': 'Reserved',  // Not used
+                'F15': 'Reserved',  // Not used
+                'F16': 'Reserved',  // Not used
+                'F17': 'Extent of cooking',
+                'F18': 'Packing format',
+                'F19': 'Packing material',
+                'F20': 'Part consumed/analysed (form when consumed)',
+                'F21': 'Production method',
+                'F22': 'Preparation/production place',
+                'F23': 'Target consumer',
+                'F24': 'Use/Intended use',
+                'F25': 'Risk ingredient',
+                'F26': 'Generic term',
+                'F27': 'Source commodities',
+                'F28': 'Process',
+                'F29': 'Purpose of raising/breeding',
+                'F30': 'Reporting level',
+                'F31': 'Animal age',
+                'F32': 'Gender',
+                'F33': 'Legislative classes',
+                'F34': 'Host sampled'
+            };
+
+            const groupName = facetGroupNames[groupId] || groupId;
+
+            // Find which hierarchies this descriptor actually belongs to
+            const correctGroups = await this.db.all(`
+                SELECT DISTINCT hierarchy_code
+                FROM term_hierarchies
+                WHERE term_code = ?
+            `, [descriptor]);
+
+            // Map hierarchy codes back to facet groups
+            // These must match the hierarchyMap above in reverse
+            const hierarchyToFacetMap = {
+                'source': 'F01',
+                'part': 'F02',       // Part-nature (part of plant/animal)
+                'state': 'F03',      // Physical state
+                'ingred': 'F04',
+                'medium': 'F06',
+                'fat': 'F07',
+                'sweet': 'F08',
+                'fort': 'F09',       // Fortification
+                'qual': 'F10',       // Qualitative info
+                'alcohol': 'F11',
+                'dough': 'F12',
+                'cookext': 'F17',    // Extent of cooking
+                'packformat': 'F18', // Packing format
+                'packmat': 'F19',    // Packing material
+                'partcon': 'F20',    // Part consumed/analysed
+                'prod': 'F21',       // Production method
+                'place': 'F22',
+                'targcon': 'F23',    // Target consumer
+                'use': 'F24',
+                'riskingred': 'F25', // Risk ingredient
+                'gen': 'F26',        // Generic term
+                'racsource': 'F27',
+                'process': 'F28',
+                'fpurpose': 'F29',   // Purpose of raising/breeding
+                'replev': 'F30',     // Reporting level
+                'animage': 'F31',    // Animal age
+                'gender': 'F32',
+                'legis': 'F33',      // Legislative classes
+                'hostsampled': 'F34' // Host sampled
+            };
+
+            const validFacetGroups = [];
+            for (const row of correctGroups) {
+                const facetGroup = Object.entries(hierarchyToFacetMap).find(([h, f]) => h === row.hierarchy_code)?.[1];
+                if (facetGroup && facetGroupNames[facetGroup]) {
+                    validFacetGroups.push(`${facetGroup} (${facetGroupNames[facetGroup]})`);
+                }
+            }
+
+            let suggestion = '';
+            if (validFacetGroups.length > 0) {
+                suggestion = ` This term belongs to: ${validFacetGroups.join(', ')}.`;
+            }
+
             warnings.push({
-                message: `-Facet ${descriptor} does not belong to category ${groupId}-`,
+                rule: 'VBA-CATEGORY',
+                message: `'${descriptor}' (${term.name}) is not valid for ${groupId} (${groupName}).${suggestion} (BR31)`,
                 severity: 'ERROR',
                 type: 'WRONG_CATEGORY',
-                facet: facetCode
+                facet: facetCode,
+                termName: term.name,
+                groupName: groupName,
+                validGroups: validFacetGroups
             });
             return false;
         }
@@ -288,7 +417,8 @@ class VBAValidator {
         for (const [groupId, count] of Object.entries(facetGroups)) {
             if (this.SINGLE_CARDINALITY_GROUPS.includes(groupId) && count > 1) {
                 warnings.push({
-                    message: `-Multiple instances of ${groupId} not allowed-`,
+                    rule: 'VBA-CARDINALITY',
+                    message: `Multiple instances of facet group ${groupId} not allowed (BR25: Single cardinality enforcement)`,
                     severity: 'HIGH',
                     type: 'CARDINALITY_VIOLATION'
                 });
@@ -312,7 +442,8 @@ class VBAValidator {
 
         for (const duplicate of duplicates) {
             warnings.push({
-                message: `-Duplicate facet ${duplicate} found-`,
+                rule: 'VBA-DUPLICATE',
+                message: `Duplicate facet '${duplicate}' found (same facet cannot be used multiple times)`,
                 severity: 'HIGH',
                 type: 'DUPLICATE_FACET'
             });

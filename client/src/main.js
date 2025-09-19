@@ -9,6 +9,23 @@ const api = axios.create({
 // App state
 let currentResults = []
 
+// Term type descriptions
+const termTypeDescriptions = {
+  'r': 'Raw commodity (unprocessed food)',
+  'd': 'Derivative (processed from raw)',
+  'c': 'Composite/Aggregated (food group)',
+  's': 'Simple composite (simple mixed food)',
+  'f': 'Facet descriptor (not base term)',
+  'g': 'Generic/Group term',
+  'h': 'Hierarchy term',
+  'n': 'Non-specific term'
+}
+
+// Get readable term type description
+function getTermTypeDescription(type) {
+  return termTypeDescriptions[type] || type
+}
+
 // Initialize app
 function initApp() {
   const app = document.getElementById('app')
@@ -180,7 +197,7 @@ function displayResults(results) {
           </div>
           <div class="info-row">
             <span class="label">Type:</span>
-            <span>${result.baseTerm.type}</span>
+            <span title="${result.baseTerm.type}">${getTermTypeDescription(result.baseTerm.type)}</span>
           </div>
           ${result.facets && result.facets.length > 0 ? `
             <div class="info-row">
