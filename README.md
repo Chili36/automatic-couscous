@@ -144,23 +144,38 @@ non-blocking guidance separately from critical validation errors.
 
 The validator implements all 31 business rules from the ICT:
 
+### ERROR Rules (Code Invalid)
+- **BR17**: Facets as base terms forbidden
+- **BR19**: Forbidden processes on raw commodities
+- **BR20**: Deprecated terms cannot be used
+- **BR21**: Dismissed terms cannot be used
+- **BR25**: Single cardinality violation (multiple facets in single-cardinality groups)
+- **BR29**: Structure format errors
+- **BR30**: Non-existent facet category
+- **BR31**: Facet not valid for category
+
+### HIGH Severity Warnings
 - **BR01**: Source commodity validation for raw terms
 - **BR03-BR04**: No source facets in composite foods
 - **BR05-BR07**: Derivative source restrictions
 - **BR08**: Non-reportable terms check
-- **BR10**: Non-specific terms warning
-- **BR11**: Generic process terms warning
 - **BR13**: Physical state creates derivatives
+- **BR14**: ICT/DCF specific rule
 - **BR16**: Process detail level check
-- **BR17**: Facets as base terms forbidden
-- **BR19**: Forbidden processes on raw commodities
-- **BR20-BR21**: Deprecated/dismissed terms
-- **BR23-BR24**: Hierarchy term warnings
-- **BR25**: Single cardinality check
+- **BR24**: Hierarchy term outside exposure hierarchy
 - **BR26**: Mutually exclusive processes
 - **BR27**: Decimal ordcode conflicts
 - **BR28**: Reconstitution restrictions
-- **BR29-BR31**: Structure and validity checks
+
+### LOW Severity Warnings
+- **BR10**: Non-specific terms warning
+- **BR11**: Generic process terms warning
+- **BR12**: Ingredient facet usage
+- **BR15**: DCF specific rule
+- **BR23**: Hierarchy term as base term
+
+### NONE Severity (Informational)
+- **BR22**: Base term successfully added
 
 ## Database Structure
 
