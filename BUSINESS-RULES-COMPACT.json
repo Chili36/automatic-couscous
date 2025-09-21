@@ -1,4 +1,26 @@
 {
+  "ruleSeverities": {
+    "ERROR": {
+      "validationImpact": "Blocking – validation fails.",
+      "rules": ["BR29", "BR30", "BR31"]
+    },
+    "HIGH": {
+      "validationImpact": "Hard warning – treated as critical.",
+      "rules": ["BR01", "BR03", "BR04", "BR05", "BR06", "BR07", "BR08", "BR13", "BR14", "BR16", "BR17", "BR19", "BR20", "BR21", "BR24", "BR25", "BR26", "BR27", "BR28"]
+    },
+    "LOW": {
+      "validationImpact": "Soft warning – advisory only.",
+      "rules": ["BR10", "BR11", "BR12", "BR15", "BR23"]
+    },
+    "NONE": {
+      "validationImpact": "Informational message.",
+      "rules": ["BR22"]
+    },
+    "UNSPECIFIED": {
+      "validationImpact": "Not currently implemented.",
+      "rules": ["BR02", "BR09", "BR18"]
+    }
+  },
   "termTypeRules": {
     "r": {
       "name": "Raw Commodity",
