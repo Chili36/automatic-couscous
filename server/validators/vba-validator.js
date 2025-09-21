@@ -215,7 +215,7 @@ class VBAValidator {
             warnings.push({
                 rule: 'VBA-IMPLICIT',
                 message: 'Implicit facets were automatically removed (already included in base term)',
-                severity: 'HIGH',
+                severity: 'NONE',
                 type: 'IMPLICIT_REMOVED'
             });
         }
