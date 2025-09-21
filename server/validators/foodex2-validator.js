@@ -21,6 +21,7 @@ class FoodEx2Validator {
         
         // These will be initialized after data is loaded
         this.businessRulesValidator = null;
+        this.warningMessages = null;
         this.dataLoaded = false;
     }
 
@@ -35,7 +36,7 @@ class FoodEx2Validator {
             await this.dataLoader.ensureDataFiles();
 
             // Load all data
-            const { forbiddenProcesses, warningMessages, warningColors } = 
+            const { forbiddenProcesses, warningMessages, warningColors } =
                 await this.dataLoader.loadAllData();
 
             // Initialize business rules validator
@@ -46,6 +47,7 @@ class FoodEx2Validator {
             );
 
             this.warningColors = warningColors;
+            this.warningMessages = warningMessages;
             this.dataLoaded = true;
         } catch (error) {
             console.error('Error initializing validator:', error);
@@ -168,6 +170,8 @@ class FoodEx2Validator {
             ...(brResult ? brResult.warnings : [])
         ];
 
+        const categorizedWarnings = this.categorizeWarnings(allWarnings);
+
         // Calculate overall severity
         const overallSeverity = this.getOverallSeverity(allWarnings);
 
@@ -189,10 +193,44 @@ class FoodEx2Validator {
             facets: vbaResult.cleanedFacets || [],
             interpretedDescription,
             warnings: allWarnings,
+            hardWarnings: categorizedWarnings.hardWarnings,
+            softWarnings: categorizedWarnings.softWarnings,
+            infoWarnings: categorizedWarnings.infoWarnings,
             severity: overallSeverity,
             warningCounts: this.getWarningCounts(allWarnings),
             semaphoreColor: this.getSemaphoreColor(overallSeverity)
         };
+    }
+
+    /**
+     * Categorize warnings by severity buckets
+     */
+    categorizeWarnings(warnings) {
+        const hardWarnings = [];
+        const softWarnings = [];
+        const infoWarnings = [];
+
+        warnings.forEach(warning => {
+            const severity = (warning.severity || '').toUpperCase();
+
+            switch (severity) {
+                case 'ERROR':
+                case 'HIGH':
+                    hardWarnings.push(warning);
+                    break;
+                case 'LOW':
+                    softWarnings.push(warning);
+                    break;
+                case 'NONE':
+                    infoWarnings.push(warning);
+                    break;
+                default:
+                    // Treat unknown severities as soft so they do not block validation
+                    softWarnings.push(warning);
+            }
+        });
+
+        return { hardWarnings, softWarnings, infoWarnings };
     }
 
     /**
@@ -213,6 +251,7 @@ class FoodEx2Validator {
             error: warnings.filter(w => w.severity === 'ERROR').length,
             high: warnings.filter(w => w.severity === 'HIGH').length,
             low: warnings.filter(w => w.severity === 'LOW').length,
+            info: warnings.filter(w => w.severity === 'NONE').length,
             total: warnings.length
         };
     }
@@ -283,7 +322,11 @@ class FoodEx2Validator {
             'Interpreted': result.interpretedDescription || '',
             'Warning Level': result.severity,
             'Warning Count': result.warningCounts.total,
-            'Warnings': result.warnings.map(w => w.message).join('; '),
+            'Soft Warning Count': (result.softWarnings || []).length,
+            'Info Message Count': (result.infoWarnings || []).length,
+            'Warnings': (result.warnings || []).map(w => w.message).join('; '),
+            'Soft Warnings': (result.softWarnings || []).map(w => w.message).join('; '),
+            'Info Messages': (result.infoWarnings || []).map(w => w.message).join('; '),
             'Cleaned Code': result.cleanedCode || result.originalCode
         }));
     }
@@ -297,6 +340,12 @@ class FoodEx2Validator {
         const errors = results.filter(r => r.severity === 'ERROR').length;
         const highWarnings = results.filter(r => r.severity === 'HIGH').length;
         const lowWarnings = results.filter(r => r.severity === 'LOW').length;
+        const softWarnings = results.reduce((total, result) => (
+            total + ((result.softWarnings || []).length)
+        ), 0);
+        const infoMessages = results.reduce((total, result) => (
+            total + ((result.infoWarnings || []).length)
+        ), 0);
 
         return {
             total,
@@ -305,8 +354,51 @@ class FoodEx2Validator {
             errors,
             highWarnings,
             lowWarnings,
+            softWarnings,
+            infoMessages,
             successRate: ((valid / total) * 100).toFixed(2) + '%'
         };
+    }
+
+    /**
+     * Retrieve categorized business rules from loaded warning messages
+     */
+    getRuleCatalog() {
+        if (!this.warningMessages) {
+            return {
+                business: [],
+                softRules: [],
+                hardRules: [],
+                infoRules: []
+            };
+        }
+
+        const businessRules = Object.entries(this.warningMessages)
+            .map(([ruleId, info]) => ({
+                id: ruleId,
+                trigger: info.trigger,
+                message: this.cleanRuleText(info.text),
+                severity: info.severity,
+                textSeverity: info.textSeverity
+            }))
+            .sort((a, b) => a.id.localeCompare(b.id));
+
+        const hardRules = businessRules.filter(rule =>
+            rule.severity === 'ERROR' || rule.severity === 'HIGH'
+        );
+        const softRules = businessRules.filter(rule => rule.severity === 'LOW');
+        const infoRules = businessRules.filter(rule => rule.severity === 'NONE');
+
+        return { business: businessRules, hardRules, softRules, infoRules };
+    }
+
+    /**
+     * Remove rule code prefixes (e.g., "BR01> ") from rule text
+     */
+    cleanRuleText(rawText) {
+        if (!rawText) return '';
+        const parts = rawText.split('> ');
+        return parts.length > 1 ? parts.slice(1).join('> ') : rawText;
     }
 }
 

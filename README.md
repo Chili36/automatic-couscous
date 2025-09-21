@@ -24,6 +24,8 @@ Example: `A01DJ#F28.A07GH$F01.A05YG` = "Apples, poached, from apple plant"
 - 🏷️ **Facet validation** with valid descriptor lookup
 - 🌐 **REST API** for integration with other systems
 - 💻 **Web interface** for interactive validation
+- 📄 **CSV/Excel export** for validation results
+- ⚖️ **Soft rule awareness** that separates critical issues from informational warnings
 - 📁 **Excel import/export** support
 - 🗄️ **SQLite database** with 31,619 official terms
 - 📋 **All 31 business rules** (BR01-BR31) from the original ICT
@@ -100,6 +102,19 @@ Content-Type: application/json
 }
 ```
 
+### Export Validation Results
+```bash
+POST /api/validate/export
+Content-Type: application/json
+
+{
+  "codes": ["A0EZJ#F28.A07KS", "A000J"],
+  "format": "csv" # or "xlsx"
+}
+```
+
+Returns a downloadable CSV (default) or Excel file containing validation outcomes, cleaned codes, interpreted descriptions, and aggregated warnings for each code, including separate columns for soft-rule warnings and informational guidance.
+
 ### Search for Terms
 ```bash
 GET /api/search?q=apple&limit=10
@@ -119,6 +134,11 @@ GET /api/terms/A01DJ
 ```bash
 GET /api/rules
 ```
+
+Returns metadata for all implemented rules. The response now includes
+categorised business rules, including dedicated `softRules` (LOW severity)
+and `infoRules` (NONE severity) collections so clients can surface
+non-blocking guidance separately from critical validation errors.
 
 ## Business Rules Implementation
 

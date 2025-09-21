@@ -10,6 +10,24 @@ Each rule has two severity indicators:
 - **Semaphore Level**: Visual indicator (ERROR > HIGH > LOW > NONE)
 - **Text Level**: Message severity (ERROR > HIGH > LOW > NONE)
 
+For validation purposes we group severities into four categories:
+
+- **Blocking Errors (`ERROR`)** – Stop validation entirely. Codes with these issues are always invalid.
+- **Hard Warnings (`HIGH`)** – Treated as critical issues. Validation fails unless explicitly configured to allow high warnings.
+- **Soft Warnings (`LOW`)** – Informational guidance. Validation still passes, but these issues should be reviewed.
+- **Informational (`NONE`)** – Contextual success or info messages that never affect validity.
+
+### Severity Classification Overview
+
+| Severity | Validation Impact | Business Rules |
+| --- | --- | --- |
+| `ERROR` | Blocking – validation fails | BR29, BR30, BR31 |
+| `HIGH` | Hard warning – treated as critical | BR01, BR03, BR04, BR05, BR06, BR07, BR08, BR13, BR14, BR16, BR17, BR19, BR20, BR21, BR24, BR25, BR26, BR27, BR28 |
+| `LOW` | Soft warning – advisory only | BR10, BR11, BR12, BR15, BR23 |
+| `NONE` | Informational – success/neutral | BR22 |
+
+> **Note**: BR02, BR09, and BR18 are placeholders that are currently not implemented and therefore have no severity classification.
+
 ## Term Types
 
 Understanding term types is crucial for validation:
@@ -36,7 +54,7 @@ Common facet prefixes:
 ## Business Rules (BR01-BR31)
 
 ### BR01: Source Commodity Validation for Raw Terms
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Raw commodity terms (type `r`) with F27 facets
 
 **Rule**: For raw commodity terms, any explicit F27 (source-commodities) facet must be:
@@ -57,7 +75,7 @@ Common facet prefixes:
 ---
 
 ### BR03: No Source Facet in Composite Foods
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Composite terms (types `c` or `s`)
 
 **Rule**: F01 (source) facets cannot be used with composite foods. Use F04 (ingredient) instead.
@@ -71,7 +89,7 @@ Common facet prefixes:
 ---
 
 ### BR04: No Source-Commodities in Composite Foods
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Composite terms (types `c` or `s`)
 
 **Rule**: F27 (source-commodities) facets cannot be used with composite foods.
@@ -85,7 +103,7 @@ Common facet prefixes:
 ---
 
 ### BR05: F27 Restrictions for Derivatives
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Derivative terms (type `d`)
 
 **Rule**: Explicit F27 facets on derivatives must be more specific than implicit F27 facets.
@@ -100,7 +118,7 @@ Common facet prefixes:
 ---
 
 ### BR06: F01 Source Requires F27
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Derivative terms (type `d`)
 
 **Rule**: F01 (source) facets can only be used on derivatives that have F27 (source-commodities) facets (implicit or explicit).
@@ -114,7 +132,7 @@ Common facet prefixes:
 ---
 
 ### BR07: F01 for Single F27 Only
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Derivative terms (type `d`)
 
 **Rule**: F01 (source) facets can only be used when exactly one F27 is present.
@@ -128,7 +146,7 @@ Common facet prefixes:
 ---
 
 ### BR08: Non-Reportable Terms Forbidden
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: All terms not in reporting hierarchy
 
 **Rule**: Terms must belong to the reporting hierarchy to be used (unless dismissed).
@@ -143,7 +161,7 @@ Common facet prefixes:
 ---
 
 ### BR10: Non-Specific Terms Discouraged
-**Severity**: NONE/LOW  
+**Severity**: NONE/LOW _(Soft warning – advisory guidance)_
 **Applies to**: Non-specific terms (type `n`)
 
 **Rule**: Using non-specific terms as base terms is discouraged.
@@ -156,7 +174,7 @@ Common facet prefixes:
 ---
 
 ### BR11: Generic Process Terms Discouraged
-**Severity**: LOW/LOW  
+**Severity**: LOW/LOW _(Soft warning – advisory guidance)_
 **Applies to**: F28 process facets
 
 **Rule**: Using generic process terms like "Processed" (A07XS) is discouraged.
@@ -170,7 +188,7 @@ Common facet prefixes:
 ---
 
 ### BR12: Ingredient Facet Restrictions
-**Severity**: LOW/LOW  
+**Severity**: LOW/LOW _(Soft warning – advisory guidance)_
 **Applies to**: Raw commodities (type `r`) and derivatives (type `d`)
 
 **Rule**: F04 (ingredient) facets can only be used as minor ingredients.
@@ -183,7 +201,7 @@ Common facet prefixes:
 ---
 
 ### BR13: Physical State Creates Derivatives
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Raw commodity terms (type `r`)
 
 **Rule**: F03 (physical state) facets cannot be applied to raw commodities as they create derivatives.
@@ -197,7 +215,7 @@ Common facet prefixes:
 ---
 
 ### BR14: ICT/DCF Only Rule
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – context-specific)_
 **Applies to**: Special validation context
 
 **Rule**: Certain validations only apply in ICT and DCF contexts.
@@ -205,7 +223,7 @@ Common facet prefixes:
 ---
 
 ### BR15: DCF Only Rule
-**Severity**: LOW/LOW  
+**Severity**: LOW/LOW _(Soft warning – advisory guidance)_
 **Applies to**: DCF context only
 
 **Rule**: Certain validations only apply in DCF context.
@@ -213,7 +231,7 @@ Common facet prefixes:
 ---
 
 ### BR16: Process Detail Level Check
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Derivative terms (type `d`)
 
 **Rule**: Explicit process facets should not be less detailed than implicit ones.
@@ -228,7 +246,7 @@ Common facet prefixes:
 ---
 
 ### BR17: Facets as Base Terms Forbidden
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Facet terms (type `f`)
 
 **Rule**: Facet descriptors cannot be used as base terms.
@@ -247,7 +265,7 @@ Common facet prefixes:
 ---
 
 ### BR19: Forbidden Processes on Raw Commodities
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Raw commodity terms (type `r`)
 
 **Rule**: Processes that create derivatives cannot be applied to raw commodities.
@@ -261,7 +279,7 @@ Common facet prefixes:
 ---
 
 ### BR20: Deprecated Terms
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: All deprecated terms
 
 **Rule**: Deprecated terms cannot be used.
@@ -271,7 +289,7 @@ Common facet prefixes:
 ---
 
 ### BR21: Dismissed Terms
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: All dismissed terms
 
 **Rule**: Dismissed terms cannot be used.
@@ -281,7 +299,7 @@ Common facet prefixes:
 ---
 
 ### BR22: Success Message
-**Severity**: NONE/NONE  
+**Severity**: NONE/NONE _(Informational message)_
 **Type**: Informational
 
 **Rule**: Confirmation message when base term is successfully added.
@@ -289,7 +307,7 @@ Common facet prefixes:
 ---
 
 ### BR23: Hierarchy Terms Discouraged
-**Severity**: LOW/LOW  
+**Severity**: LOW/LOW _(Soft warning – advisory guidance)_
 **Applies to**: Hierarchy terms in exposure hierarchy
 
 **Rule**: Using hierarchy terms as base terms is discouraged.
@@ -302,7 +320,7 @@ Common facet prefixes:
 ---
 
 ### BR24: Non-Exposure Hierarchy Warning
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Hierarchy terms NOT in exposure hierarchy
 
 **Rule**: Hierarchy terms not in exposure hierarchy shouldn't be used as base terms.
@@ -312,7 +330,7 @@ Common facet prefixes:
 ---
 
 ### BR25: Single Cardinality Enforcement
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Single-cardinality facet categories
 
 **Rule**: Certain facet categories can only have one value.
@@ -337,7 +355,7 @@ Common facet prefixes:
 ---
 
 ### BR26: Mutually Exclusive Processes
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Derivative terms (type `d`) with F28 processes
 
 **Rule**: Processes with the same ordinal code cannot be used together.
@@ -351,7 +369,7 @@ Common facet prefixes:
 ---
 
 ### BR27: Decimal Ordcode Process Conflicts
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Derivative terms (type `d`)
 
 **Rule**: Processes with decimal ordcodes (x.1, x.2) in the same integer group conflict.
@@ -366,7 +384,7 @@ Common facet prefixes:
 ---
 
 ### BR28: Reconstitution Restrictions
-**Severity**: HIGH/HIGH  
+**Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Dehydrated products
 
 **Rule**: Reconstitution/dilution processes cannot be applied to concentrate, powder, or dried terms.
@@ -380,7 +398,7 @@ Common facet prefixes:
 ---
 
 ### BR29: Code Structure Validation
-**Severity**: ERROR/ERROR  
+**Severity**: ERROR/ERROR _(Blocking error – validation fails)_
 **Applies to**: All codes
 
 **Rule**: Code must follow the pattern: `BASE#FACET.DESC#FACET.DESC`
@@ -397,7 +415,7 @@ Common facet prefixes:
 ---
 
 ### BR30: Invalid Facet Category
-**Severity**: ERROR/ERROR  
+**Severity**: ERROR/ERROR _(Blocking error – validation fails)_
 **Applies to**: All facet codes
 
 **Rule**: Facet category (F01, F02, etc.) must exist.
@@ -408,7 +426,7 @@ Common facet prefixes:
 ---
 
 ### BR31: Facet Not in Category Hierarchy
-**Severity**: ERROR/ERROR  
+**Severity**: ERROR/ERROR _(Blocking error – validation fails)_
 **Applies to**: All facet descriptors
 
 **Rule**: Facet descriptor must belong to its category's hierarchy.
@@ -439,4 +457,4 @@ Common facet prefixes:
 3. **Use appropriate facets**: Source for origin, ingredient for components
 4. **Respect cardinality**: Don't duplicate single-cardinality facets
 5. **Check process compatibility**: Some processes exclude others
-6. **Validate incrementally**: Test codes as you build them
+6. **Validate incrementally**: Test codes as you build them.

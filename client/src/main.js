@@ -26,6 +26,68 @@ function getTermTypeDescription(type) {
   return termTypeDescriptions[type] || type
 }
 
+function categorizeResultWarnings(result) {
+  const allWarnings = Array.isArray(result.warnings) ? result.warnings : []
+  const hardWarnings = Array.isArray(result.hardWarnings)
+    ? result.hardWarnings
+    : allWarnings.filter(w => ['ERROR', 'HIGH'].includes((w.severity || '').toUpperCase()))
+  const softWarnings = Array.isArray(result.softWarnings)
+    ? result.softWarnings
+    : allWarnings.filter(w => (w.severity || '').toUpperCase() === 'LOW')
+  const infoWarnings = Array.isArray(result.infoWarnings)
+    ? result.infoWarnings
+    : allWarnings.filter(w => (w.severity || '').toUpperCase() === 'NONE')
+
+  return { hardWarnings, softWarnings, infoWarnings }
+}
+
+function renderWarning(warning) {
+  const severity = (warning.severity || 'low').toLowerCase()
+  const ruleLabel = warning.rule || warning.type || 'RULE'
+  return `
+    <div class="warning ${severity}">
+      <span class="warning-rule">${ruleLabel}</span>
+      <span class="warning-message">${warning.message}</span>
+      ${warning.additionalInfo ? `<div class="warning-info">${warning.additionalInfo}</div>` : ''}
+    </div>
+  `
+}
+
+function renderWarningGroup(title, warnings, emptyMessage, groupClass = '') {
+  const baseClass = `warning-group ${groupClass}`.trim()
+
+  if (!warnings || warnings.length === 0) {
+    return `
+      <div class="${baseClass} empty">
+        <h5>${title}</h5>
+        <div class="no-warnings">${emptyMessage}</div>
+      </div>
+    `
+  }
+
+  return `
+    <div class="${baseClass}">
+      <h5>${title}</h5>
+      ${warnings.map(renderWarning).join('')}
+    </div>
+  `
+}
+
+function renderWarningsSection(result) {
+  const { hardWarnings, softWarnings, infoWarnings } = categorizeResultWarnings(result)
+
+  const sections = [
+    renderWarningGroup('Critical issues', hardWarnings, '✓ No critical issues', 'critical'),
+    renderWarningGroup('Soft rule warnings', softWarnings, 'No soft rule warnings', 'soft')
+  ]
+
+  if (infoWarnings.length > 0) {
+    sections.push(renderWarningGroup('Informational messages', infoWarnings, '', 'info'))
+  }
+
+  return sections.join('')
+}
+
 // Initialize app
 function initApp() {
   const app = document.getElementById('app')
@@ -82,7 +144,18 @@ function initApp() {
         </section>
 
         <section id="results" class="results-section" style="display: none;">
-          <h2>Validation Results</h2>
+          <div class="results-header">
+            <h2>Validation Results</h2>
+            <div class="export-controls">
+              <select id="export-format" aria-label="Select export format">
+                <option value="csv">CSV</option>
+                <option value="xlsx">Excel (.xlsx)</option>
+              </select>
+              <button class="btn-secondary" id="download-results" disabled title="Download validation results">
+                Download
+              </button>
+            </div>
+          </div>
           <div id="results-content"></div>
         </section>
       </main>
@@ -109,6 +182,7 @@ function setupEventListeners() {
   // Validation buttons
   document.getElementById('validate-single').addEventListener('click', validateSingle)
   document.getElementById('validate-batch').addEventListener('click', validateBatch)
+  document.getElementById('download-results').addEventListener('click', downloadResults)
 
   // Example codes
   document.querySelectorAll('.example-code').forEach(btn => {
@@ -168,21 +242,59 @@ async function validateBatch() {
   
   try {
     const response = await api.post('/validate/batch', { codes })
-    displayResults(response.data)
+    displayResults(response.data.results, response.data.statistics)
   } catch (error) {
     showError(error.response?.data?.error || error.message)
   }
 }
 
 // Display results
-function displayResults(results) {
-  currentResults = results
+function displayResults(results, statistics = null) {
+  const safeResults = Array.isArray(results) ? results : []
+  currentResults = safeResults
   const resultsSection = document.getElementById('results')
   const content = document.getElementById('results-content')
-  
+
   resultsSection.style.display = 'block'
-  
-  content.innerHTML = results.map((result, index) => `
+
+  const summaryHtml = statistics ? `
+    <div class="results-summary">
+      <div class="summary-card">
+        <span class="summary-label">Total Codes</span>
+        <span class="summary-value">${statistics.total}</span>
+      </div>
+      <div class="summary-card success">
+        <span class="summary-label">Valid</span>
+        <span class="summary-value">${statistics.valid}</span>
+      </div>
+      <div class="summary-card warning">
+        <span class="summary-label">Invalid</span>
+        <span class="summary-value">${statistics.invalid}</span>
+      </div>
+      <div class="summary-card error">
+        <span class="summary-label">Errors</span>
+        <span class="summary-value">${statistics.errors}</span>
+      </div>
+      <div class="summary-card high">
+        <span class="summary-label">High Warnings</span>
+        <span class="summary-value">${statistics.highWarnings}</span>
+      </div>
+      <div class="summary-card soft">
+        <span class="summary-label">Soft Warnings</span>
+        <span class="summary-value">${statistics.softWarnings ?? 0}</span>
+      </div>
+      <div class="summary-card info">
+        <span class="summary-label">Info Messages</span>
+        <span class="summary-value">${statistics.infoMessages ?? 0}</span>
+      </div>
+      <div class="summary-card neutral">
+        <span class="summary-label">Success Rate</span>
+        <span class="summary-value">${statistics.successRate}</span>
+      </div>
+    </div>
+  ` : ''
+
+  content.innerHTML = summaryHtml + safeResults.map((result) => `
     <div class="result-item ${(result.severity || 'none').toLowerCase()}">
       <div class="result-header">
         <h3 class="code">${result.code}</h3>
@@ -216,13 +328,7 @@ function displayResults(results) {
       
       <div class="warnings">
         <h4>Validation Messages</h4>
-        ${result.warnings.length > 0 ? result.warnings.map(w => `
-          <div class="warning ${(w.severity || 'low').toLowerCase()}">
-            <span class="warning-rule">${w.rule || 'VBA'}</span>
-            <span class="warning-message">${w.message}</span>
-            ${w.additionalInfo ? `<div class="warning-info">${w.additionalInfo}</div>` : ''}
-          </div>
-        `).join('') : '<div class="no-warnings">✓ No warnings</div>'}
+        ${renderWarningsSection(result)}
       </div>
       
       <div class="result-footer">
@@ -232,15 +338,63 @@ function displayResults(results) {
       </div>
     </div>
   `).join('')
-  
+
+  updateExportState()
   // Smooth scroll to results
   resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+}
+
+function updateExportState() {
+  const exportButton = document.getElementById('download-results')
+  if (!exportButton) return
+  exportButton.disabled = !currentResults || currentResults.length === 0
+}
+
+async function downloadResults() {
+  if (!currentResults || currentResults.length === 0) {
+    return
+  }
+
+  const formatSelector = document.getElementById('export-format')
+  const format = formatSelector ? formatSelector.value : 'csv'
+  const codes = currentResults.map(result => result.code).filter(Boolean)
+
+  if (codes.length === 0) {
+    alert('No codes available for export')
+    return
+  }
+
+  try {
+    const response = await api.post('/validate/export', { codes, format }, { responseType: 'blob' })
+    const mimeType = format === 'xlsx'
+      ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      : 'text/csv;charset=utf-8;'
+
+    const blob = new Blob([response.data], { type: mimeType })
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = format === 'xlsx'
+      ? 'foodex2-validation-results.xlsx'
+      : 'foodex2-validation-results.csv'
+
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(downloadUrl)
+  } catch (error) {
+    console.error('Download failed', error)
+    const message = error.response?.data?.error || error.message || 'Failed to download results'
+    alert(message)
+  }
 }
 
 // Show loading state
 function showLoading() {
   const resultsSection = document.getElementById('results')
   resultsSection.style.display = 'block'
+  currentResults = []
+  updateExportState()
   document.getElementById('results-content').innerHTML = `
     <div class="loading">
       <div class="spinner"></div>
@@ -253,6 +407,8 @@ function showLoading() {
 function showError(message) {
   const resultsSection = document.getElementById('results')
   resultsSection.style.display = 'block'
+  currentResults = []
+  updateExportState()
   document.getElementById('results-content').innerHTML = `
     <div class="error-message">
       <strong>Error:</strong> ${message}
