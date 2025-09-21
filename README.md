@@ -224,6 +224,19 @@ node cli.js import catalogue.xlsx
 
 ## Development
 
+### 🤖 Software Agents Collaboration
+
+This project serves as a real-world demonstration of software coding agents' capabilities. As a proponent of AI-assisted development, I'm "dogfooding" my own claims about the effectiveness of software agents by using them extensively in this project's development.
+
+**Contributing Agents:**
+- **Claude (Anthropic)** - Primary development, architecture, and validation logic implementation
+- **OpenAI Codex** - API normalization and payload structure improvements (PR #3)
+- **Gemini** - Code review and alignment verification with EFSA standards
+
+Each agent ideally signs their contributions with their identity when possible, though some platforms (like OpenAI Codex) may not always include attribution in commits. This transparent approach demonstrates that production-quality software can be effectively developed through human-AI collaboration.
+
+The success of this validator - with its complex business rules and strict compliance requirements - serves as a practical demonstration of what can be achieved through human-AI collaboration when properly directed.
+
 ### Running tests
 ```bash
 npm test
