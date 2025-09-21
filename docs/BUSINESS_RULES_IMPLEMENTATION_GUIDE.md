@@ -474,7 +474,7 @@ async checkBR23_BR24(baseTerm, warnings) {
 **Implementation:**
 ```javascript
 async checkBR25(explicitFacets, warnings) {
-    const SINGLE_CARDINALITY = ['F01', 'F02', 'F03', 'F07', 'F11', 'F22', 'F24', 'F26', 'F30', 'F32'];
+    const SINGLE_CARDINALITY = ['F01', 'F02', 'F03', 'F07', 'F11', 'F22', 'F24', 'F26', 'F30', 'F32', 'F34'];
     const facetGroups = {};
     
     for (const facet of explicitFacets) {

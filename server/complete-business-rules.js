@@ -228,19 +228,17 @@ class CompleteBusinessRules {
     
     // Check single cardinality categories
     const singleCardinalityCategories = {
+      'F01': true, // Source
+      'F02': true, // Part-nature
       'F03': true, // Physical state
+      'F07': true, // Fat content
       'F11': true, // Alcohol content
-      'F17': true, // Extent of cooking
-      'F20': true, // Part consumed/analysed
       'F22': true, // Preparation production place
-      'F23': true, // Target consumer
       'F24': true, // Intended use
       'F26': true, // Generic term
-      'F29': true, // Purpose of raising
-      'F30': true, // Reproductive level
-      'F31': true, // Animal age class
+      'F30': true, // Reporting level
       'F32': true, // Gender
-      'F33': true  // Legislative classes
+      'F34': true  // Host sampled
     };
     
     for (const [category, facetList] of Object.entries(facetCategories)) {

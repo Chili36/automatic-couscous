@@ -5,7 +5,7 @@ class VBAValidator {
     constructor(db) {
         this.db = db;
         // Single cardinality facet groups
-        this.SINGLE_CARDINALITY_GROUPS = ['F01', 'F02', 'F03', 'F07', 'F11', 'F22', 'F24', 'F26', 'F30', 'F32'];
+        this.SINGLE_CARDINALITY_GROUPS = ['F01', 'F02', 'F03', 'F07', 'F11', 'F22', 'F24', 'F26', 'F30', 'F32', 'F34'];
     }
 
     /**

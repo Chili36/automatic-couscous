@@ -56,7 +56,7 @@
     }
   },
   "singleCardinalityFacets": [
-    "F03", "F11", "F17", "F20", "F22", "F23", "F24", "F26", "F29", "F30", "F31", "F32", "F33"
+    "F01", "F02", "F03", "F07", "F11", "F22", "F24", "F26", "F30", "F32", "F34"
   ],
   "processOrdinalGroups": {
     "1": {

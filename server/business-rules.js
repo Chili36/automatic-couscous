@@ -172,7 +172,7 @@ class BusinessRules {
     }
     
     // Check single cardinality categories
-    const singleCardinalityCategories = ['F03', 'F11', 'F17']; // Physical state, Alcohol content, etc.
+    const singleCardinalityCategories = ['F01', 'F02', 'F03', 'F07', 'F11', 'F22', 'F24', 'F26', 'F30', 'F32', 'F34'];
     
     for (const category of singleCardinalityCategories) {
       if (facetCategories[category] && facetCategories[category].length > 1) {

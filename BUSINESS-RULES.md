@@ -318,15 +318,17 @@ Common facet prefixes:
 **Rule**: Certain facet categories can only have one value.
 
 **Single-cardinality categories**:
+- F01 (Source)
+- F02 (Part-nature)
 - F03 (Physical state)
+- F07 (Fat content)
 - F11 (Alcohol content)
-- F17 (Extent of cooking)
-- F20 (Part consumed/analysed)
 - F22 (Preparation production place)
-- F23 (Target consumer)
 - F24 (Intended use)
 - F26 (Generic term)
-- F29-F33 (Various single-value categories)
+- F30 (Reporting level)
+- F32 (Gender)
+- F34 (Host sampled)
 
 **Example**:
 - ❌ `A0B9Z#F03.A0BZT#F03.A0BZU` (Two physical states)
