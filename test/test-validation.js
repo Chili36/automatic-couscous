@@ -56,6 +56,13 @@ async function testValidation() {
                 code: 'A077V',
                 expectedValid: false,
                 expectedRule: 'BR17'
+            },
+            {
+                name: 'Hierarchy base term triggers soft rule',
+                code: 'A000J',
+                expectedValid: true,
+                expectedSeverity: 'LOW',
+                expectedSoftWarnings: 1
             }
         ];
 
@@ -69,20 +76,39 @@ async function testValidation() {
             
             console.log(`Valid: ${result.valid} (expected: ${testCase.expectedValid})`);
             console.log(`Severity: ${result.severity}`);
-            
+
             if (result.warnings.length > 0) {
                 console.log('Warnings:');
                 result.warnings.forEach(w => {
                     console.log(`  - [${w.rule || w.type}] ${w.message} (${w.severity})`);
                 });
             }
-            
+
+            if (typeof testCase.expectedSoftWarnings === 'number') {
+                const softWarnings = result.softWarnings || [];
+                console.log(`Soft warnings: ${softWarnings.length} (expected: ${testCase.expectedSoftWarnings})`);
+            }
+
+            if (testCase.expectedSeverity) {
+                console.log(`Expected severity: ${testCase.expectedSeverity}`);
+            }
+
             if (result.interpretedDescription) {
                 console.log(`Interpreted: ${result.interpretedDescription}`);
             }
-            
+
             // Check if test passed
-            const passed = result.valid === testCase.expectedValid;
+            let passed = result.valid === testCase.expectedValid;
+
+            if (typeof testCase.expectedSoftWarnings === 'number') {
+                const softWarnings = result.softWarnings || [];
+                passed = passed && softWarnings.length === testCase.expectedSoftWarnings;
+            }
+
+            if (testCase.expectedSeverity) {
+                passed = passed && result.severity === testCase.expectedSeverity;
+            }
+
             console.log(passed ? '✓ PASSED' : '✗ FAILED');
             console.log('---\n');
         }
@@ -104,6 +130,12 @@ async function testValidation() {
         console.log('\nBatch validation results:');
         const stats = service.validator.getValidationStats(batchResults);
         console.log(stats);
+
+        const ruleCatalog = service.validator.getRuleCatalog();
+        console.log('\nRule catalog summary:');
+        console.log(`Hard rules: ${ruleCatalog.hardRules.length}`);
+        console.log(`Soft rules: ${ruleCatalog.softRules.length}`);
+        console.log(`Info rules: ${ruleCatalog.infoRules.length}`);
 
         // Test search functionality
         console.log('\n\nTesting search functionality...');

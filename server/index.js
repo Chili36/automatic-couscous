@@ -2,9 +2,10 @@
 // This integrates the complete ICT validation implementation
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const morgan = require('morgan');
 const FoodEx2Service = require('./foodex2-service');
+const { Parser: Json2csvParser } = require('json2csv');
+const XLSX = require('xlsx');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -62,10 +63,10 @@ app.post('/api/validate', async (req, res) => {
 app.post('/api/validate/batch', async (req, res) => {
     try {
         const { codes } = req.body;
-        
+
         if (!codes || !Array.isArray(codes)) {
-            return res.status(400).json({ 
-                error: 'Codes array is required' 
+            return res.status(400).json({
+                error: 'Codes array is required'
             });
         }
 
@@ -78,55 +79,151 @@ app.post('/api/validate/batch', async (req, res) => {
         });
     } catch (error) {
         console.error('Batch validation error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Batch validation failed',
-            message: error.message 
+            message: error.message
         });
     }
 });
 
+app.post('/api/validate/export', async (req, res) => {
+    try {
+        const { codes, format = 'csv' } = req.body || {};
+
+        if (!codes || !Array.isArray(codes) || codes.length === 0) {
+            return res.status(400).json({
+                error: 'Codes array is required for export'
+            });
+        }
+
+        const service = req.app.locals.foodex2Service;
+        const results = await service.validateBatch(codes);
+        const formatted = service.validator.formatForExcel(results);
+
+        if (!Array.isArray(formatted) || formatted.length === 0) {
+            return res.status(400).json({
+                error: 'No results available for export'
+            });
+        }
+
+        const fields = [
+            'FoodEx2 Code',
+            'Valid',
+            'Base Term',
+            'Base Term Name',
+            'Interpreted',
+            'Warning Level',
+            'Warning Count',
+            'Soft Warning Count',
+            'Info Message Count',
+            'Warnings',
+            'Soft Warnings',
+            'Info Messages',
+            'Cleaned Code'
+        ];
+
+        if (format === 'xlsx') {
+            const worksheet = XLSX.utils.json_to_sheet(formatted);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Validation Results');
+            const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', 'attachment; filename="foodex2-validation-results.xlsx"');
+            return res.send(buffer);
+        }
+
+        const parser = new Json2csvParser({ fields });
+        const csv = parser.parse(formatted);
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="foodex2-validation-results.csv"');
+        return res.send(csv);
+    } catch (error) {
+        console.error('Export error:', error);
+        res.status(500).json({
+            error: 'Failed to export results',
+            message: error.message
+        });
+    }
+});
+
+const BUSINESS_RULE_METADATA = [
+    { id: 'BR01', name: 'Source Commodity Raw', description: 'F27 validation for raw terms' },
+    { id: 'BR03', name: 'No F01 in Composite', description: 'Source facet forbidden in composite' },
+    { id: 'BR04', name: 'No F27 in Composite', description: 'Source-commodities forbidden in composite' },
+    { id: 'BR05', name: 'F27 Derivative Restriction', description: 'F27 must be more specific for derivatives' },
+    { id: 'BR06', name: 'F01 Requires F27', description: 'Source requires source-commodities in derivatives' },
+    { id: 'BR07', name: 'F01 Single F27', description: 'Source with single source-commodity only' },
+    { id: 'BR08', name: 'Reporting Hierarchy', description: 'Term must belong to reporting hierarchy' },
+    { id: 'BR10', name: 'Non-Specific Terms', description: 'Non-specific terms discouraged' },
+    { id: 'BR11', name: 'Generic Process', description: 'Generic process terms discouraged' },
+    { id: 'BR12', name: 'Ingredient Restrictions', description: 'F04 restrictions for raw/derivative' },
+    { id: 'BR13', name: 'Physical State', description: 'Physical state creates derivatives' },
+    { id: 'BR14', name: 'ICT/DCF Context Rule', description: 'Applies to ICT and DCF contexts only' },
+    { id: 'BR15', name: 'DCF Exclusive Rule', description: 'Applies only to DCF context validations' },
+    { id: 'BR16', name: 'Process Detail Level', description: 'Process must be detailed enough' },
+    { id: 'BR17', name: 'No Facet Base Terms', description: 'Facets cannot be base terms' },
+    { id: 'BR19', name: 'Forbidden Processes', description: 'Some processes forbidden on raw' },
+    { id: 'BR20', name: 'Deprecated Terms', description: 'Cannot use deprecated terms' },
+    { id: 'BR21', name: 'Dismissed Terms', description: 'Cannot use dismissed terms' },
+    { id: 'BR22', name: 'Base Term Success', description: 'Informational success confirmation' },
+    { id: 'BR23', name: 'Hierarchy Terms', description: 'Hierarchy terms discouraged' },
+    { id: 'BR24', name: 'Non-Exposure Hierarchy', description: 'Must be exposure hierarchy' },
+    { id: 'BR25', name: 'Single Cardinality', description: 'One facet per category' },
+    { id: 'BR26', name: 'Mutually Exclusive', description: 'Processes cannot be combined' },
+    { id: 'BR27', name: 'Decimal OrdCode', description: 'Process creates new derivative' },
+    { id: 'BR28', name: 'Reconstitution', description: 'No reconstitution on dehydrated' }
+];
+
+const VBA_RULES = [
+    { id: 'VBA-1', name: 'Facet Structure', description: 'Facets must follow format Fxx.YYYYY' },
+    { id: 'VBA-2', name: 'Implicit Facet Removal', description: 'Implicit facets are removed with warning' },
+    { id: 'VBA-3', name: 'Descriptor Validation', description: 'All facet descriptors must exist' },
+    { id: 'VBA-4', name: 'Single Cardinality', description: 'Certain facet groups allow only one instance' }
+];
+
 app.get('/api/rules', async (req, res) => {
     try {
-        // Return information about all implemented rules
-        const rules = {
-            vba: [
-                { id: 'VBA-1', name: 'Facet Structure', description: 'Facets must follow format Fxx.YYYYY' },
-                { id: 'VBA-2', name: 'Implicit Facet Removal', description: 'Implicit facets are removed with warning' },
-                { id: 'VBA-3', name: 'Descriptor Validation', description: 'All facet descriptors must exist' },
-                { id: 'VBA-4', name: 'Single Cardinality', description: 'Certain facet groups allow only one instance' }
-            ],
-            business: [
-                { id: 'BR01', name: 'Source Commodity Raw', description: 'F27 validation for raw terms' },
-                { id: 'BR03', name: 'No F01 in Composite', description: 'Source facet forbidden in composite' },
-                { id: 'BR04', name: 'No F27 in Composite', description: 'Source-commodities forbidden in composite' },
-                { id: 'BR05', name: 'F27 Derivative Restriction', description: 'F27 must be more specific for derivatives' },
-                { id: 'BR06', name: 'F01 Requires F27', description: 'Source requires source-commodities in derivatives' },
-                { id: 'BR07', name: 'F01 Single F27', description: 'Source with single source-commodity only' },
-                { id: 'BR08', name: 'Reporting Hierarchy', description: 'Term must belong to reporting hierarchy' },
-                { id: 'BR10', name: 'Non-Specific Terms', description: 'Non-specific terms discouraged' },
-                { id: 'BR11', name: 'Generic Process', description: 'Generic process terms discouraged' },
-                { id: 'BR12', name: 'Ingredient Restrictions', description: 'F04 restrictions for raw/derivative' },
-                { id: 'BR13', name: 'Physical State', description: 'Physical state creates derivatives' },
-                { id: 'BR16', name: 'Process Detail Level', description: 'Process must be detailed enough' },
-                { id: 'BR17', name: 'No Facet Base Terms', description: 'Facets cannot be base terms' },
-                { id: 'BR19', name: 'Forbidden Processes', description: 'Some processes forbidden on raw' },
-                { id: 'BR20', name: 'Deprecated Terms', description: 'Cannot use deprecated terms' },
-                { id: 'BR21', name: 'Dismissed Terms', description: 'Cannot use dismissed terms' },
-                { id: 'BR23', name: 'Hierarchy Terms', description: 'Hierarchy terms discouraged' },
-                { id: 'BR24', name: 'Non-Exposure Hierarchy', description: 'Must be exposure hierarchy' },
-                { id: 'BR25', name: 'Single Cardinality', description: 'One facet per category' },
-                { id: 'BR26', name: 'Mutually Exclusive', description: 'Processes cannot be combined' },
-                { id: 'BR27', name: 'Decimal OrdCode', description: 'Process creates new derivative' },
-                { id: 'BR28', name: 'Reconstitution', description: 'No reconstitution on dehydrated' }
-            ]
-        };
-        
-        res.json(rules);
+        const validator = req.app.locals.foodex2Service?.validator;
+        const catalog = validator ? validator.getRuleCatalog() : null;
+
+        const severityLookup = (catalog?.business || []).reduce((acc, rule) => {
+            acc[rule.id] = rule;
+            return acc;
+        }, {});
+
+        const businessRules = BUSINESS_RULE_METADATA.map(rule => ({
+            ...rule,
+            severity: severityLookup[rule.id]?.severity || 'HIGH',
+            textSeverity: severityLookup[rule.id]?.textSeverity || severityLookup[rule.id]?.severity || 'HIGH',
+            trigger: severityLookup[rule.id]?.trigger || ''
+        }));
+
+        const knownRuleIds = new Set(BUSINESS_RULE_METADATA.map(rule => rule.id));
+        const additionalRules = (catalog?.business || [])
+            .filter(rule => !knownRuleIds.has(rule.id))
+            .map(rule => ({
+                id: rule.id,
+                name: rule.id,
+                description: rule.message,
+                severity: rule.severity,
+                textSeverity: rule.textSeverity,
+                trigger: rule.trigger
+            }));
+
+        res.json({
+            vba: VBA_RULES,
+            business: businessRules.concat(additionalRules),
+            softRules: catalog?.softRules || [],
+            infoRules: catalog?.infoRules || [],
+            hardRules: catalog?.hardRules || []
+        });
     } catch (error) {
         console.error('Rules error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to get rules',
-            message: error.message 
+            message: error.message
         });
     }
 });

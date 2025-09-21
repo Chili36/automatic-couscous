@@ -67,6 +67,91 @@ main {
   padding: 2rem;
 }
 
+.results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.export-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.export-controls select {
+  min-width: 140px;
+}
+
+.results-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-card {
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: 0.65rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.summary-card.success {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.summary-card.warning {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.summary-card.error {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.summary-card.high {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.summary-card.soft {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(254, 243, 199, 0.55);
+}
+
+.summary-card.info {
+  border-color: rgba(148, 163, 184, 0.45);
+  background: rgba(226, 232, 240, 0.6);
+}
+
+.summary-card.neutral {
+  border-color: rgba(37, 99, 235, 0.35);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.summary-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.summary-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
 /* Tabs */
 .tabs {
   display: flex;
@@ -144,6 +229,24 @@ textarea {
   min-height: 120px;
 }
 
+select {
+  padding: 0.6rem 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background-color: #ffffff;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
 /* Buttons */
 .btn-primary {
   background: var(--primary-color);
@@ -166,6 +269,29 @@ textarea {
 
 .btn-primary:active {
   transform: translateY(0);
+}
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: var(--text-primary);
+  border: none;
+  padding: 0.65rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #cbd5f5;
+  box-shadow: var(--shadow);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* Examples */
@@ -308,6 +434,42 @@ textarea {
   margin-bottom: 0.75rem;
 }
 
+.warning-group {
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.warning-group:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.warning-group h5 {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.warning-group.soft h5 {
+  color: #b45309;
+}
+
+.warning-group.info h5 {
+  color: #475569;
+}
+
+.warning-group.empty .no-warnings {
+  color: var(--text-secondary);
+}
+
+.warning-group.empty.critical .no-warnings {
+  color: var(--success-color);
+}
+
 .warning {
   padding: 0.75rem;
   margin-bottom: 0.5rem;
@@ -331,6 +493,11 @@ textarea {
 .warning.low {
   background: #fef3c7;
   border-left: 4px solid #fbbf24;
+}
+
+.warning.none {
+  background: rgba(191, 219, 254, 0.6);
+  border-left: 4px solid rgba(59, 130, 246, 0.45);
 }
 
 .warning-rule {
@@ -440,7 +607,22 @@ footer a:hover {
   .input-section, .results-section {
     padding: 1.5rem;
   }
-  
+
+  .results-header {
+    align-items: stretch;
+  }
+
+  .export-controls {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .export-controls select,
+  .export-controls .btn-secondary {
+    width: 100%;
+  }
+
   .example-codes {
     flex-direction: column;
   }
