@@ -175,10 +175,10 @@ class FoodEx2Validator {
         // Calculate overall severity
         const overallSeverity = this.getOverallSeverity(allWarnings);
 
-        // Determine if valid
+        // Determine if valid - only ERROR severity should invalidate the code
+        // HIGH warnings are serious but the code structure is still valid
         const hasErrors = allWarnings.some(w => w.severity === 'ERROR');
-        const hasHighWarnings = allWarnings.some(w => w.severity === 'HIGH');
-        const isValid = !hasErrors && (!hasHighWarnings || !!this.options.allowHighWarnings);
+        const isValid = !hasErrors;
 
         // Get interpreted description
         const interpretedDescription = vbaResult.baseTerm ? 
