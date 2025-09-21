@@ -132,11 +132,14 @@ class FoodEx2Service {
         `, [code]);
 
         // Parse implicit facets
-        const implicitFacets = term.implicit_facets ? 
+        const implicitFacets = term.implicit_facets ?
             await this.parseImplicitFacets(term.implicit_facets) : [];
+
+        const normalizedTerm = this.normalizeTermRecord(term);
 
         return {
             ...term,
+            ...normalizedTerm,
             hierarchies,
             implicitFacets
         };
@@ -169,6 +172,49 @@ class FoodEx2Service {
         }
 
         return facets;
+    }
+
+    /**
+     * Normalize raw term database record to camelCase properties expected by services
+     */
+    normalizeTermRecord(term) {
+        if (!term) return null;
+
+        return {
+            code: term.term_code,
+            name: term.extended_name,
+            shortName: term.short_name,
+            scopeNote: term.scope_note,
+            version: term.version,
+            lastUpdate: term.last_update,
+            validFrom: term.valid_from,
+            validTo: term.valid_to,
+            status: term.status,
+            deprecated: term.deprecated === 1,
+            dismissed: term.status === 'DISMISSED',
+            scientificNames: term.scientific_names,
+            commonNames: term.common_names,
+            allFacets: term.all_facets,
+            detailLevel: term.detail_level,
+            type: term.term_type,
+            isscaap: term.ISSCAAP,
+            taxonomicCode: term.taxonomic_code,
+            alpha3Code: term.alpha3_code,
+            gemsCode: term.GEMS_code,
+            matrixCode: term.matrix_code,
+            langualCode: term.langual_code,
+            foodexOldCode: term.foodex_old_code,
+            prodTreat: term.prod_treat,
+            prodMeth: term.prod_meth,
+            prodPack: term.prod_pack,
+            euringsCode: term.eurings_code,
+            ifnCode: term.IFN_code,
+            euFeedReg: term.EU_feed_reg,
+            eppoCode: term.EPPO_code,
+            vectorNetCode: term.vector_net_code,
+            addfoodCode: term.ADDFOOD_code,
+            implicitFacetsRaw: term.implicit_facets
+        };
     }
 
     /**
