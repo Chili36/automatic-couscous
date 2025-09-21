@@ -609,9 +609,20 @@ class BusinessRulesValidator {
             severity: 'HIGH'
         };
 
+        // Customize the message to include the specific term
+        let customizedMessage = message.text;
+        if (involvedTerms) {
+            // Replace generic phrases with specific term information
+            customizedMessage = customizedMessage
+                .replace('this term', `term ${involvedTerms}`)
+                .replace('The selected term', `Term ${involvedTerms}`)
+                .replace('The hierarchy term selected', `The hierarchy term ${involvedTerms}`)
+                .replace('of the terms', `of the terms (${involvedTerms})`);
+        }
+
         return {
             rule: messageId,
-            message: message.text,
+            message: customizedMessage,
             severity: message.severity,
             type: 'BUSINESS_RULE',
             involvedTerms
