@@ -17,7 +17,7 @@ Message ID;Trigger Event Description;Text;SemaphoreWarningLevel;TextWarningLevel
 16;if a derivative is described with a process facet with an ordCode value less than the implicit ordCode;BR16> Reporting facets less detailed than the implicit facets is discouraged.;HIGH;HIGH
 17;if a facet is selected as base term;BR17> Reporting facets as base term is forbidden.;HIGH;HIGH
 18;empty;BR18> Empty;NONE;NONE
-19;if a forbidden process is chosen (the derivative should be used);BR19> Processes that create a new derivative nature cannot be applied to raw commodity base terms. Start from the exsisting derivative base term instead.;HIGH;HIGH
+19;if a forbidden process is chosen (the derivative should be used);BR19> Processes that create a new derivative nature cannot be applied to raw commodity base terms. Start from the existing derivative base term instead.;HIGH;HIGH
 20;if a deprecated term has been chosen;BR20> The selected term cannot be used since it is deprecated.;HIGH;HIGH
 21;if a dismissed term has been chosen;BR21> The selected term cannot be used since it is dismissed.;HIGH;HIGH
 22;if a non-hierarchy is selected as base term (message not shown if high warn to bt is present);BR22> Base term successfully added.;NONE;NONE
@@ -25,8 +25,8 @@ Message ID;Trigger Event Description;Text;SemaphoreWarningLevel;TextWarningLevel
 24;if a hierarchy which does not belong to the exposure is selected as base term;BR24> The hierarchy term selected does not belong to the exposure hierarchy.;HIGH;HIGH
 25;it is not allowed to add more than one explicit facet  to a facet category with single cardinality;BR25> Reporting more than one facet is forbidden for this category.;HIGH;HIGH
 26;if more than one process with the same ordCode is chosen (mutually exclusive property violated);BR26> The selected processes cannot be used together for derivative base term.;HIGH;HIGH
-27;if two processes (implicit or explicit) with decimal ordcode and same integer part are applied (at least one explicit);BR27> Processes that create a new derivative nature cannot be applied to exsisting derivative base terms. Start from a different derivative base term instead.;HIGH;HIGH
-28;if reconstitution is added as process to concentrate, powder or other dehydrated terms;BR28> Processes that create a new derivative nature cannot be applied to exsisting derivative base terms. Start from the reconstituted/diluted term instead.;HIGH;HIGH
+27;if two processes (implicit or explicit) with decimal ordcode and same integer part are applied (at least one explicit);BR27> Processes that create a new derivative nature cannot be applied to existing derivative base terms. Start from a different derivative base term instead.;HIGH;HIGH
+28;if reconstitution is added as process to concentrate, powder or other dehydrated terms;BR28> Processes that create a new derivative nature cannot be applied to existing derivative base terms. Start from the reconstituted/diluted term instead.;HIGH;HIGH
 29;if wrong term structure or term not found;BR29> The code does not follow the required structure or is misspelled.;ERROR;ERROR
 30;if the facet group id doesn't exists;BR30> The category does not exist.;ERROR;ERROR
 31;if the facet doesn't belong to the group hierarchy;BR31> The facet is not valid for the facet category.;ERROR;ERROR

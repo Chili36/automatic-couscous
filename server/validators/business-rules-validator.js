@@ -351,9 +351,21 @@ class BusinessRulesValidator {
         // Check each F28 process facet
         for (const facet of explicitFacets.filter(f => f.startsWith('F28.'))) {
             const processCode = facet.split('.')[1];
-            
+
             if (forbiddenForTerm.includes(processCode)) {
-                warnings.push(this.createWarning('BR19', processCode));
+                // Get process term details for better error message
+                const processTermRow = await this.db.get(
+                    'SELECT extended_name FROM terms WHERE term_code = ?',
+                    [processCode]
+                );
+                const processName = processTermRow ? processTermRow.extended_name : processCode;
+                const baseTermName = baseTerm.extended_name || baseTerm.name || baseTerm.code;
+
+                // Create a more specific warning message
+                const specificWarning = this.createWarning('BR19', processCode);
+                specificWarning.message = `BR19> Process ${facet} (${processName}) creates a derivative from raw commodity ${baseTerm.code} (${baseTermName}) and is forbidden. Start from the existing derivative base term instead.`;
+                specificWarning.facet = facet;
+                warnings.push(specificWarning);
             }
         }
     }

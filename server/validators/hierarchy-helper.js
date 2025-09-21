@@ -187,10 +187,9 @@ class HierarchyHelper {
      * Check if a term is non-specific
      */
     isNonSpecific(term) {
-        const termName = term.name || term.extended_name || '';
-        return term.term_type === 'n' || 
-               termName.toLowerCase().includes('other') ||
-               termName.toLowerCase().includes('unspecified');
+        // Only check term_type 'n' as the definitive marker for non-specific terms
+        // Terms like "Sheep other slaughtering products" are specific terms that happen to have "other" in their name
+        return term.term_type === 'n';
     }
 
     /**
