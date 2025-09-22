@@ -130,15 +130,15 @@ function initApp() {
             </div>
           </div>
 
-          <div class="examples">
-            <h3>Quick Examples</h3>
-            <div class="example-codes">
-              <button class="example-code" data-code="A0B9Z">A0B9Z (Bovine meat)</button>
-              <button class="example-code" data-code="A0EZS">A0EZS (Chicken meat)</button>
-              <button class="example-code" data-code="A0BXM">A0BXM (Milk)</button>
-              <button class="example-code" data-code="A000J">A000J (Cereal grains)</button>
-              <button class="example-code" data-code="A0B9Z#F28.A07JS">A0B9Z#F28.A07JS (Cooked beef)</button>
-              <button class="example-code" data-code="A0BXM#F01.A0F6E">A0BXM#F01.A0F6E (Cow milk)</button>
+          <div class="resources">
+            <h3>FoodEx2 Resources</h3>
+            <div class="resource-links">
+              <a href="https://www.efsa.europa.eu/en/data/data-standardisation" target="_blank" rel="noopener noreferrer" class="resource-link">
+                <span>📊</span> EFSA FoodEx2 Data Standardisation
+              </a>
+              <a href="https://github.com/openefsa/catalogue-browser/wiki" target="_blank" rel="noopener noreferrer" class="resource-link">
+                <span>🔍</span> EFSA Catalogue Browser (GitHub)
+              </a>
             </div>
           </div>
         </section>
@@ -183,16 +183,6 @@ function setupEventListeners() {
   document.getElementById('validate-single').addEventListener('click', validateSingle)
   document.getElementById('validate-batch').addEventListener('click', validateBatch)
   document.getElementById('download-results').addEventListener('click', downloadResults)
-
-  // Example codes
-  document.querySelectorAll('.example-code').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const code = e.target.dataset.code
-      document.getElementById('single-code').value = code
-      switchTab('single')
-      validateSingle()
-    })
-  })
 
   // Enter key for single validation
   document.getElementById('single-code').addEventListener('keypress', (e) => {
