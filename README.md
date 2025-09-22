@@ -142,7 +142,9 @@ non-blocking guidance separately from critical validation errors.
 
 ## Business Rules Implementation
 
-The validator implements all 31 business rules from the ICT:
+The validator implements all 31 business rules from the ICT, plus context-specific and domain-specific rules for special circumstances:
+- [Context-Specific Rules](docs/CONTEXT_SPECIFIC_RULES.md) - Rules based on analysis type and substances
+- [Domain-Specific Rules](docs/DOMAIN_SPECIFIC_RULES.md) - Mandatory facets for VMPR, additives, and contaminants monitoring
 
 ### ERROR Rules (Code Invalid)
 - **BR17**: Facets as base terms forbidden

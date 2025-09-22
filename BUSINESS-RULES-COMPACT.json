@@ -128,6 +128,128 @@
       "restriction": "Check ordinal codes for mutual exclusivity"
     }
   },
+  "domainSpecificRules": {
+    "VMPR": {
+      "name": "Veterinary Medicine Products Residues",
+      "rules": {
+        "STANDARD": {
+          "condition": "animal_products",
+          "mandatory": ["F01", "F02"],
+          "description": "Source and Part-nature required for animal tissue, milk, eggs, honey"
+        },
+        "RPC_PROCESSED": {
+          "condition": "rpc_derivative_or_processed",
+          "mandatory": ["F01"],
+          "explicit": true,
+          "description": "Explicit F01 Source required for processed products"
+        },
+        "NONFOOD": {
+          "condition": "base_term_A0C60",
+          "mandatory": ["F01", "F02"],
+          "description": "Animal species and sample type for non-food matrices"
+        },
+        "PLAN3": {
+          "condition": "processed_imports_plan3",
+          "mandatory": ["F33"],
+          "cardinality": 1,
+          "description": "Single F33 Legislative class for import control"
+        }
+      }
+    },
+    "FOOD_ADDITIVES": {
+      "name": "Food Additives Monitoring",
+      "rules": {
+        "STANDARD": {
+          "mandatory": ["F33"],
+          "recommended": ["F03"],
+          "description": "Legislative category per EC 1333/2008, physical state recommended"
+        }
+      }
+    },
+    "CONTAMINANTS": {
+      "name": "Chemical Contaminants",
+      "rules": {
+        "ACRYLAMIDE": {
+          "condition": "acrylamide_analysis",
+          "mandatory": ["F33"],
+          "description": "Legislative class for acrylamide monitoring programs"
+        }
+      }
+    }
+  },
+  "contextSpecificRules": {
+    "F33_ACRYLAMIDE": {
+      "facet": "F33",
+      "context": "acrylamide_analysis",
+      "severity": "ERROR",
+      "requirement": "MANDATORY",
+      "description": "Legislative class required for acrylamide samples"
+    },
+    "F33_ADDITIVES": {
+      "facet": "F33",
+      "context": "food_additives",
+      "severity": "ERROR",
+      "requirement": "MANDATORY",
+      "description": "Legislative category per Regulation (EC) 1333/2008"
+    },
+    "F33_VMPR": {
+      "facet": "F33",
+      "context": "vmpr_processed_plan3",
+      "severity": "ERROR",
+      "requirement": "REQUIRED",
+      "description": "Legislative class for third-country import control plan",
+      "note": "Only one F33 code for mixed samples"
+    },
+    "F33_FLAVOURINGS": {
+      "facet": "F33",
+      "context": "flavourings",
+      "severity": "LOW",
+      "requirement": "RECOMMENDED",
+      "description": "Legislative class for flavourings"
+    },
+    "F23_INFANTS": {
+      "facet": "F23",
+      "context": "infant_products",
+      "severity": "LOW",
+      "requirement": "RECOMMENDED",
+      "description": "Target consumer for infant formulas (under 12 months)"
+    },
+    "F01_NONFOOD": {
+      "facet": "F01",
+      "context": "base_term_A0C60",
+      "severity": "ERROR",
+      "requirement": "MANDATORY",
+      "description": "Source animal species for non-food animal matrices"
+    },
+    "F02_NONFOOD": {
+      "facet": "F02",
+      "context": "base_term_A0C60",
+      "severity": "ERROR",
+      "requirement": "MANDATORY",
+      "description": "Part nature for non-food animal matrices"
+    },
+    "F17_COOKING": {
+      "facet": "F17",
+      "context": "furans_acrylamide_analysis",
+      "severity": "MEDIUM",
+      "requirement": "REQUIRED",
+      "description": "Extent of cooking for heat treatment reporting"
+    },
+    "F19_PACKAGING": {
+      "facet": "F19",
+      "context": "contaminants_bisphenol_phthalates",
+      "severity": "MEDIUM",
+      "requirement": "CRUCIAL",
+      "description": "Packaging material for contaminant analysis"
+    },
+    "F07_FAT": {
+      "facet": "F07",
+      "context": "fat_weight_expression",
+      "severity": "LOW",
+      "requirement": "REQUIRED",
+      "description": "Fat content when results expressed as fat weight"
+    }
+  },
   "validationExamples": {
     "valid": [
       {
