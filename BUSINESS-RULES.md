@@ -13,7 +13,7 @@ Each rule has two severity indicators:
 For validation purposes we group severities into four categories:
 
 - **Blocking Errors (`ERROR`)** – Stop validation entirely. Codes with these issues are always invalid.
-- **Hard Warnings (`HIGH`)** – Treated as critical issues. Validation fails unless explicitly configured to allow high warnings.
+- **Hard Warnings (`HIGH`)** – Critical issues that invalidate the code. These are business rule violations that make the code unacceptable.
 - **Soft Warnings (`LOW`)** – Informational guidance. Validation still passes, but these issues should be reviewed.
 - **Informational (`NONE`)** – Contextual success or info messages that never affect validity.
 
@@ -21,10 +21,10 @@ For validation purposes we group severities into four categories:
 
 | Severity | Validation Impact | Business Rules |
 | --- | --- | --- |
-| `ERROR` | Blocking – validation fails | BR29, BR30, BR31 |
-| `HIGH` | Hard warning – treated as critical | BR01, BR03, BR04, BR05, BR06, BR07, BR08, BR13, BR14, BR16, BR17, BR19, BR20, BR21, BR24, BR25, BR26, BR27, BR28 |
-| `LOW` | Soft warning – advisory only | BR10, BR11, BR12, BR15, BR23 |
-| `NONE` | Informational – success/neutral | BR22 |
+| `ERROR` | Blocking – validation fails | BR17, BR19, BR20, BR21, BR25, BR29, BR30, BR31 |
+| `HIGH` | Blocking – validation fails | BR01, BR03, BR04, BR05, BR06, BR07, BR08, BR13, BR14, BR16, BR24, BR26, BR27, BR28 |
+| `LOW` | Soft warning – validation passes | BR10, BR11, BR12, BR15, BR23 |
+| `NONE` | Informational – validation passes | BR22 |
 
 > **Note**: BR02, BR09, and BR18 are placeholders that are currently not implemented and therefore have no severity classification.
 
