@@ -76,6 +76,29 @@ main {
   margin-bottom: 1.5rem;
 }
 
+.results-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-controls label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.filter-controls select {
+  min-width: 150px;
+}
+
 .export-controls {
   display: flex;
   align-items: center;
@@ -137,6 +160,12 @@ main {
 .summary-card.neutral {
   border-color: rgba(37, 99, 235, 0.35);
   background: rgba(37, 99, 235, 0.08);
+}
+
+.summary-card.filter-info {
+  border-color: rgba(139, 92, 246, 0.45);
+  background: rgba(139, 92, 246, 0.1);
+  border-width: 2px;
 }
 
 .summary-label {
@@ -620,12 +649,20 @@ footer a:hover {
     align-items: stretch;
   }
 
+  .results-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .filter-controls,
   .export-controls {
     width: 100%;
     flex-direction: column;
     align-items: stretch;
   }
 
+  .filter-controls select,
   .export-controls select,
   .export-controls .btn-secondary {
     width: 100%;

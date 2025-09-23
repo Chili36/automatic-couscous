@@ -8,6 +8,8 @@ const api = axios.create({
 
 // App state
 let currentResults = []
+let currentFilter = 'all'
+let currentStatistics = null
 
 // Term type descriptions
 const termTypeDescriptions = {
@@ -24,6 +26,13 @@ const termTypeDescriptions = {
 // Get readable term type description
 function getTermTypeDescription(type) {
   return termTypeDescriptions[type] || type
+}
+
+// Escape HTML to prevent rendering issues
+function escapeHtml(text) {
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
 }
 
 function categorizeResultWarnings(result) {
@@ -146,14 +155,27 @@ function initApp() {
         <section id="results" class="results-section" style="display: none;">
           <div class="results-header">
             <h2>Validation Results</h2>
-            <div class="export-controls">
-              <select id="export-format" aria-label="Select export format">
-                <option value="csv">CSV</option>
-                <option value="xlsx">Excel (.xlsx)</option>
-              </select>
-              <button class="btn-secondary" id="download-results" disabled title="Download validation results">
-                Download
-              </button>
+            <div class="results-controls">
+              <div class="filter-controls">
+                <label for="result-filter">Filter:</label>
+                <select id="result-filter" aria-label="Filter results">
+                  <option value="all">Show All</option>
+                  <option value="invalid">Invalid Only</option>
+                  <option value="valid">Valid Only</option>
+                  <option value="error">ERROR Severity</option>
+                  <option value="high">HIGH Severity</option>
+                  <option value="low">LOW Warnings</option>
+                </select>
+              </div>
+              <div class="export-controls">
+                <select id="export-format" aria-label="Select export format">
+                  <option value="csv">CSV</option>
+                  <option value="xlsx">Excel (.xlsx)</option>
+                </select>
+                <button class="btn-secondary" id="download-results" disabled title="Download validation results">
+                  Download
+                </button>
+              </div>
             </div>
           </div>
           <div id="results-content"></div>
@@ -183,6 +205,12 @@ function setupEventListeners() {
   document.getElementById('validate-single').addEventListener('click', validateSingle)
   document.getElementById('validate-batch').addEventListener('click', validateBatch)
   document.getElementById('download-results').addEventListener('click', downloadResults)
+
+  // Filter dropdown
+  document.getElementById('result-filter').addEventListener('change', (e) => {
+    currentFilter = e.target.value
+    applyFilter()
+  })
 
   // Enter key for single validation
   document.getElementById('single-code').addEventListener('keypress', (e) => {
@@ -242,52 +270,114 @@ async function validateBatch() {
 function displayResults(results, statistics = null) {
   const safeResults = Array.isArray(results) ? results : []
   currentResults = safeResults
+  currentStatistics = statistics
+  currentFilter = 'all' // Reset filter when new results come in
+  document.getElementById('result-filter').value = 'all'
+
+  renderResults()
+}
+
+// Apply filter and re-render
+function applyFilter() {
+  renderResults()
+}
+
+// Get filtered results based on current filter
+function getFilteredResults() {
+  if (!currentResults || currentFilter === 'all') {
+    return currentResults
+  }
+
+  return currentResults.filter(result => {
+    switch (currentFilter) {
+      case 'invalid':
+        return !result.valid
+      case 'valid':
+        return result.valid
+      case 'error':
+        return result.warnings?.some(w => w.severity === 'ERROR')
+      case 'high':
+        return result.warnings?.some(w => w.severity === 'HIGH')
+      case 'low':
+        return result.warnings?.some(w => w.severity === 'LOW')
+      default:
+        return true
+    }
+  })
+}
+
+// Render results with current filter
+function renderResults() {
   const resultsSection = document.getElementById('results')
   const content = document.getElementById('results-content')
+  const filteredResults = getFilteredResults()
 
   resultsSection.style.display = 'block'
 
-  const summaryHtml = statistics ? `
+  // Update statistics for filtered view
+  let displayStats = currentStatistics
+  if (currentStatistics && currentFilter !== 'all') {
+    const filteredValid = filteredResults.filter(r => r.valid).length
+    const filteredInvalid = filteredResults.filter(r => !r.valid).length
+    displayStats = {
+      ...currentStatistics,
+      showing: filteredResults.length,
+      total: currentResults.length,
+      valid: filteredValid,
+      invalid: filteredInvalid
+    }
+  }
+
+  const summaryHtml = displayStats ? `
     <div class="results-summary">
-      <div class="summary-card">
-        <span class="summary-label">Total Codes</span>
-        <span class="summary-value">${statistics.total}</span>
-      </div>
+      ${displayStats.showing !== undefined && displayStats.showing < displayStats.total ? `
+        <div class="summary-card filter-info">
+          <span class="summary-label">Showing</span>
+          <span class="summary-value">${displayStats.showing} of ${displayStats.total}</span>
+        </div>
+      ` : `
+        <div class="summary-card">
+          <span class="summary-label">Total Codes</span>
+          <span class="summary-value">${displayStats.total}</span>
+        </div>
+      `}
       <div class="summary-card success">
         <span class="summary-label">Valid</span>
-        <span class="summary-value">${statistics.valid}</span>
+        <span class="summary-value">${displayStats.valid}</span>
       </div>
       <div class="summary-card warning">
         <span class="summary-label">Invalid</span>
-        <span class="summary-value">${statistics.invalid}</span>
+        <span class="summary-value">${displayStats.invalid}</span>
       </div>
       <div class="summary-card error">
         <span class="summary-label">Errors</span>
-        <span class="summary-value">${statistics.errors}</span>
+        <span class="summary-value">${displayStats.errors || 0}</span>
       </div>
       <div class="summary-card high">
         <span class="summary-label">High Warnings</span>
-        <span class="summary-value">${statistics.highWarnings}</span>
+        <span class="summary-value">${displayStats.highWarnings || 0}</span>
       </div>
       <div class="summary-card soft">
         <span class="summary-label">Soft Warnings</span>
-        <span class="summary-value">${statistics.softWarnings ?? 0}</span>
+        <span class="summary-value">${displayStats.softWarnings ?? 0}</span>
       </div>
       <div class="summary-card info">
         <span class="summary-label">Info Messages</span>
-        <span class="summary-value">${statistics.infoMessages ?? 0}</span>
+        <span class="summary-value">${displayStats.infoMessages ?? 0}</span>
       </div>
-      <div class="summary-card neutral">
-        <span class="summary-label">Success Rate</span>
-        <span class="summary-value">${statistics.successRate}</span>
-      </div>
+      ${displayStats.successRate ? `
+        <div class="summary-card neutral">
+          <span class="summary-label">Success Rate</span>
+          <span class="summary-value">${displayStats.successRate}</span>
+        </div>
+      ` : ''}
     </div>
   ` : ''
 
-  content.innerHTML = summaryHtml + safeResults.map((result) => `
+  content.innerHTML = summaryHtml + filteredResults.map((result) => `
     <div class="result-item ${(result.severity || 'none').toLowerCase()}">
       <div class="result-header">
-        <h3 class="code">${result.code}</h3>
+        <h3 class="code">${escapeHtml(result.code)}</h3>
         <span class="level-badge ${(result.severity || 'none').toLowerCase()}">${result.severity || 'NONE'}</span>
       </div>
       
@@ -295,7 +385,7 @@ function displayResults(results, statistics = null) {
         <div class="term-info">
           <div class="info-row">
             <span class="label">Base Term:</span>
-            <span>${result.baseTerm.code} - ${result.baseTerm.name}</span>
+            <span>${escapeHtml(result.baseTerm.code)} - ${escapeHtml(result.baseTerm.name)}</span>
           </div>
           <div class="info-row">
             <span class="label">Type:</span>
@@ -304,13 +394,13 @@ function displayResults(results, statistics = null) {
           ${result.facets && result.facets.length > 0 ? `
             <div class="info-row">
               <span class="label">Facets:</span>
-              <span>${result.facets.join(' | ')}</span>
+              <span>${result.facets.map(f => escapeHtml(f)).join(' | ')}</span>
             </div>
           ` : ''}
           ${result.interpretedDescription ? `
             <div class="info-row">
               <span class="label">Interpreted:</span>
-              <span>${result.interpretedDescription}</span>
+              <span>${escapeHtml(result.interpretedDescription)}</span>
             </div>
           ` : ''}
         </div>
