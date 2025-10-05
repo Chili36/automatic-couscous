@@ -1,6 +1,7 @@
 // Main FoodEx2 validator that combines VBA and Business Rules validation
 const VBAValidator = require('./vba-validator');
 const BusinessRulesValidator = require('./business-rules-validator');
+const SoftRulesValidator = require('./soft-rules-validator');
 const DataLoader = require('./data-loader');
 const path = require('path');
 
@@ -18,9 +19,10 @@ class FoodEx2Validator {
         // Initialize validators
         this.vbaValidator = new VBAValidator(db);
         this.dataLoader = new DataLoader(this.options.dataPath);
-        
+
         // These will be initialized after data is loaded
         this.businessRulesValidator = null;
+        this.softRulesValidator = null;
         this.warningMessages = null;
         this.dataLoaded = false;
     }
@@ -44,6 +46,12 @@ class FoodEx2Validator {
                 this.db,
                 warningMessages,
                 forbiddenProcesses
+            );
+
+            // Initialize soft rules validator
+            this.softRulesValidator = new SoftRulesValidator(
+                this.db,
+                warningMessages
             );
 
             this.warningColors = warningColors;
@@ -79,8 +87,14 @@ class FoodEx2Validator {
             vbaResult.cleanedFacets || []
         );
 
+        // Run soft rules validation
+        const srResult = await this.runSoftRulesValidation(
+            vbaResult.baseTerm,
+            vbaResult.cleanedFacets || []
+        );
+
         // Combine results
-        return await this.formatResult(vbaResult, brResult);
+        return await this.formatResult(vbaResult, brResult, srResult);
     }
 
     /**
@@ -161,13 +175,32 @@ class FoodEx2Validator {
     }
 
     /**
+     * Run soft rules validation
+     */
+    async runSoftRulesValidation(baseTerm, facets, textInfo = '') {
+        if (this.options.skipSoftRules || !baseTerm) {
+            return { warnings: [] };
+        }
+
+        const warnings = await this.softRulesValidator.validateSoftRules(
+            baseTerm,
+            facets,
+            this.options.context,
+            textInfo
+        );
+
+        return { warnings };
+    }
+
+    /**
      * Format the final result
      */
-    async formatResult(vbaResult, brResult) {
+    async formatResult(vbaResult, brResult, srResult) {
         // Combine all warnings
         const allWarnings = [
             ...vbaResult.warnings,
-            ...(brResult ? brResult.warnings : [])
+            ...(brResult ? brResult.warnings : []),
+            ...(srResult ? srResult.warnings : [])
         ];
 
         const categorizedWarnings = this.categorizeWarnings(allWarnings);
