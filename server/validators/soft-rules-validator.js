@@ -17,35 +17,39 @@ class SoftRulesValidator {
         this.softRuleMessages = {
             'SR1': {
                 text: 'Info: When using a generic base term, consider adding facet F26.A07XE to indicate that the detailed term was missing',
-                severity: 'NONE'
+                severity: 'LOW'
             },
             'SR2': {
                 text: 'Info: Consider providing detailed description in free text field when using generic terms or multiple refinement facets',
-                severity: 'NONE'
+                severity: 'LOW'
             },
             'SR3': {
                 text: 'Info: F04 (Ingredient) detected on raw/derivative - ensure ingredient is in small, negligible amount (minor ingredient approach)',
-                severity: 'NONE'
+                severity: 'LOW'
             },
             'SR4': {
                 text: 'Info: Mixed raw commodities should use F27 (Source-commodities) instead of F01 (Source)',
-                severity: 'NONE'
+                severity: 'LOW'
             },
             'SR5': {
                 text: 'Info: Consider reporting both process (F28) and new physical state (F03) for mechanical processes that change physical state',
-                severity: 'NONE'
+                severity: 'LOW'
             },
             'SR6': {
                 text: 'Info: F33 (Legislative-classes) or F03 (Physical-state) may be required for additives/flavourings domain',
-                severity: 'NONE'
+                severity: 'LOW'
             },
             'SR7': {
                 text: 'Info: F01 (Source) facet is recommended for VMPR derivatives',
-                severity: 'NONE'
+                severity: 'LOW'
             },
             'SR8': {
                 text: 'Info: F17 (Extent-of-cooking) is recommended for high-temperature processed foods (acrylamide/furans monitoring)',
-                severity: 'NONE'
+                severity: 'LOW'
+            },
+            'SR9': {
+                text: 'Info: Explicit facet is redundant or conflicts with implicit facet already present in base term',
+                severity: 'LOW'
             }
         };
     }
@@ -65,6 +69,7 @@ class SoftRulesValidator {
         await this.checkSR6(baseTerm, explicitFacets, warnings);
         await this.checkSR7(baseTerm, explicitFacets, warnings);
         await this.checkSR8(baseTerm, explicitFacets, warnings);
+        await this.checkSR9(baseTerm, explicitFacets, warnings);
 
         return warnings;
     }
@@ -225,6 +230,44 @@ class SoftRulesValidator {
     }
 
     /**
+     * SR9: Redundant Explicit Facet (conflicts with implicit facet)
+     * When an explicit facet is a child of or equal to an implicit facet
+     */
+    async checkSR9(baseTerm, explicitFacets, warnings) {
+        if (!baseTerm.implicit_facets) return;
+
+        // Parse implicit facets
+        const implicitFacets = this.hierarchyHelper.parseImplicitFacets(baseTerm.implicit_facets);
+
+        // Check each explicit facet against implicit facets
+        for (const explicitFacet of explicitFacets) {
+            const [explicitGroup, explicitDescriptor] = explicitFacet.split('.');
+
+            // Find implicit facets in the same facet group
+            const sameGroupImplicit = implicitFacets.filter(f => f.startsWith(explicitGroup + '.'));
+
+            for (const implicitFacet of sameGroupImplicit) {
+                const [implicitGroup, implicitDescriptor] = implicitFacet.split('.');
+
+                // Check if explicit facet is the same as or a child of the implicit facet
+                const isEqual = explicitDescriptor === implicitDescriptor;
+                const isChild = await this.hierarchyHelper.isChildOf(
+                    explicitDescriptor,
+                    implicitDescriptor,
+                    'master'
+                );
+
+                if (isEqual || isChild) {
+                    warnings.push(this.createSoftWarning(
+                        'SR9',
+                        `${explicitFacet} (implicit: ${implicitFacet})`
+                    ));
+                }
+            }
+        }
+    }
+
+    /**
      * Helper: Check if term is generic
      */
     async isGenericTerm(baseTerm) {
@@ -301,14 +344,14 @@ class SoftRulesValidator {
     createSoftWarning(ruleId, involvedTerms = '') {
         const message = this.softRuleMessages[ruleId] || {
             text: `Unknown soft rule: ${ruleId}`,
-            severity: 'NONE'
+            severity: 'LOW'
         };
 
         return {
             rule: ruleId,
             message: message.text,
-            severity: 'NONE',
-            type: 'INFO',
+            severity: message.severity,
+            type: 'SOFT_RULE',
             involvedTerms
         };
     }
