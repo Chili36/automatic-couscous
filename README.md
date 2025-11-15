@@ -127,8 +127,26 @@ GET /api/facets/F28/descriptors
 
 ### Get Term Details
 ```bash
-GET /api/terms/A01DJ
+GET /api/term/A01DJ
 ```
+
+### Get Database Information
+```bash
+GET /api/database/info
+```
+
+Returns:
+- Catalogue metadata (version, last update, status)
+- Total term and hierarchy counts
+- Version distribution across all terms
+- Recent update history from release notes
+
+### Health Check
+```bash
+GET /api/health
+```
+
+Returns service status and implementation details
 
 ### Get Rules Info
 ```bash
@@ -189,11 +207,59 @@ The validator uses an SQLite database (`data/mtx.db`) containing:
 - **88,642 relationships** - Term-hierarchy mappings
 
 ### Key Tables
-- `terms` - Main term definitions
+- `terms` - Main term definitions with version tracking
 - `hierarchies` - Classification hierarchies
 - `attributes` - Facet definitions
 - `term_hierarchies` - Many-to-many relationships
-- `release_notes` - Version history
+- `catalogue` - MTX catalogue metadata and version info
+- `release_notes` - Version history and update tracking
+- `business_rules` - Business rule definitions
+- `forbidden_processes` - Invalid process combinations
+
+### Database Version Information
+
+Check the current database version:
+```bash
+curl http://localhost:5001/api/database/info
+```
+
+Response includes:
+- **Catalogue version** (e.g., MTX v16.2)
+- **Total terms** and hierarchies
+- **Version distribution** across all terms
+- **Recent updates** from release notes
+
+### Updating the Database
+
+The database is based on the official MTX catalogue from EFSA. To update:
+
+1. **Download the latest MTX catalogue** from EFSA:
+   - Official source: [EFSA Knowledge Junction](https://zenodo.org/communities/efsa-kj/)
+   - Look for "MTX" or "FoodEx2" catalogue releases
+
+2. **Place the Excel file** in the `data/` directory:
+   ```bash
+   mv MTX_<version>.xlsx data/
+   ```
+
+3. **Run the import script**:
+   ```bash
+   python3 scripts/import_mtx_to_sqlite.py data/MTX_<version>.xlsx
+   ```
+
+4. **Restart the server** to load the new database:
+   ```bash
+   npm run pm2:restart
+   # or
+   ./start.sh
+   ```
+
+5. **Verify the update**:
+   ```bash
+   curl http://localhost:5001/api/database/info | jq '.catalogue'
+   ```
+
+**Note**: The current database (v16.2) contains terms spanning versions 3.0 through 16.2, with most terms (66%) from version 8.9.
 
 ## Project Structure
 

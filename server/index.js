@@ -277,11 +277,65 @@ app.get('/api/term/:code', async (req, res) => {
     }
 });
 
+app.get('/api/database/info', async (req, res) => {
+    try {
+        const db = req.app.locals.foodex2Service.db;
+
+        // Get catalogue info (FoodEx2 version)
+        const catalogue = await db.get(`
+            SELECT code, name, version, last_update, status
+            FROM catalogue
+            WHERE code = 'MTX'
+        `);
+
+        // Get version statistics
+        const versionStats = await db.all(`
+            SELECT version, COUNT(*) as count
+            FROM terms
+            GROUP BY version
+            ORDER BY version DESC
+        `);
+
+        // Get total counts
+        const termCount = await db.get('SELECT COUNT(*) as count FROM terms');
+        const hierarchyCount = await db.get('SELECT COUNT(*) as count FROM hierarchies');
+
+        // Get latest release notes
+        const recentUpdates = await db.all(`
+            SELECT * FROM release_notes
+            ORDER BY id DESC
+            LIMIT 5
+        `);
+
+        res.json({
+            catalogue: {
+                code: catalogue?.code || 'Unknown',
+                name: catalogue?.name || 'Unknown',
+                version: catalogue?.version || 'Unknown',
+                lastUpdate: catalogue?.last_update,
+                status: catalogue?.status
+            },
+            statistics: {
+                totalTerms: termCount.count,
+                totalHierarchies: hierarchyCount.count,
+                versionDistribution: versionStats
+            },
+            recentUpdates: recentUpdates
+        });
+    } catch (error) {
+        console.error('Database info error:', error);
+        res.status(500).json({
+            error: 'Failed to get database info',
+            message: error.message
+        });
+    }
+});
+
 app.get('/api/health', async (req, res) => {
     try {
         // Check database connection
         await req.app.locals.foodex2Service.db.get('SELECT 1');
-        
+
         res.json({
             status: 'healthy',
             service: 'FoodEx2 Validator',
@@ -289,7 +343,8 @@ app.get('/api/health', async (req, res) => {
             implementation: 'Complete ICT validation logic',
             rules: {
                 vba: 'Structural validation implemented',
-                business: '31 business rules implemented'
+                business: '31 business rules implemented',
+                soft: '9 soft rules implemented'
             }
         });
     } catch (error) {
