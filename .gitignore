@@ -78,3 +78,6 @@ Desktop.ini
 # Database backups directory (keep local, never commit)
 backups/
 data/backups/
+
+# MTX Excel source files (large files, download from EFSA)
+data/MTX_*.xlsx
