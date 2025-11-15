@@ -236,7 +236,7 @@ def import_mtx_to_sqlite(excel_path, db_path):
     hier_df = pd.read_excel(xl_file, sheet_name='hierarchy')
     for _, row in hier_df.iterrows():
         cursor.execute('''
-            INSERT OR REPLACE INTO hierarchies VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO hierarchies VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             clean_text(row['code']),
             clean_text(row['name']),
@@ -250,7 +250,9 @@ def import_mtx_to_sqlite(excel_path, db_path):
             convert_date(row['validTo']),
             clean_text(row['status']),
             clean_boolean(row['deprecated']),
-            clean_text(row['hierarchyGroups'])
+            clean_text(row['hierarchyGroups']),
+            clean_boolean(row.get('reportingHierarchy', 0)),
+            clean_boolean(row.get('exposureHierarchy', 0))
         ))
     print(f"  Imported {len(hier_df)} hierarchies")
     
@@ -424,10 +426,33 @@ def import_mtx_to_sqlite(excel_path, db_path):
     conn.close()
 
 if __name__ == "__main__":
-    excel_path = "/Users/davidfoster/Dev/catalogue-browser/MTX_16.2.xlsx"
-    db_path = "/Users/davidfoster/Dev/catalogue-browser/foodex2-validator/data/mtx.db"
-    
+    import sys
+
+    # Default paths
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_dir = os.path.dirname(script_dir)
+    default_excel = os.path.join(project_dir, "data", "MTX_16.3.xlsx")
+    default_db = os.path.join(project_dir, "data", "mtx.db")
+
+    # Use command-line arguments if provided
+    if len(sys.argv) > 1:
+        excel_path = sys.argv[1]
+    else:
+        excel_path = default_excel
+
+    if len(sys.argv) > 2:
+        db_path = sys.argv[2]
+    else:
+        db_path = default_db
+
     # Create data directory if it doesn't exist
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
-    
+
+    print(f"Excel file: {excel_path}")
+    print(f"Database: {db_path}")
+
+    if not os.path.exists(excel_path):
+        print(f"Error: Excel file not found: {excel_path}")
+        sys.exit(1)
+
     import_mtx_to_sqlite(excel_path, db_path)
