@@ -7,7 +7,18 @@
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
     "setup-db": "node server/setup-database.js",
-    "test": "node test/test-validation.js"
+    "test": "node test/test-validation.js",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:start:json": "pm2 start pm2.json",
+    "pm2:stop": "pm2 stop foodex2-backend foodex2-frontend",
+    "pm2:restart": "pm2 restart foodex2-backend foodex2-frontend",
+    "pm2:reload": "pm2 reload ecosystem.config.js",
+    "pm2:delete": "pm2 delete foodex2-backend foodex2-frontend",
+    "pm2:logs": "pm2 logs",
+    "pm2:logs:backend": "pm2 logs foodex2-backend",
+    "pm2:logs:frontend": "pm2 logs foodex2-frontend",
+    "pm2:status": "pm2 status",
+    "pm2:monit": "pm2 monit"
   },
   "dependencies": {
     "express": "^4.18.2",
