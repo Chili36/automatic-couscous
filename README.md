@@ -18,7 +18,7 @@ Example: `A01DJ#F28.A07GH$F01.A05YG` = "Apples, poached, from apple plant"
 
 ## Features
 
-- ✅ **Full code validation** against MTX v16.2 catalogue
+- ✅ **Full code validation** against MTX v16.3 catalogue
 - 🔍 **Term search** with fuzzy matching
 - 📊 **Hierarchy navigation** for exploring food classifications
 - 🏷️ **Facet validation** with valid descriptor lookup
@@ -27,7 +27,7 @@ Example: `A01DJ#F28.A07GH$F01.A05YG` = "Apples, poached, from apple plant"
 - 📄 **CSV/Excel export** for validation results
 - ⚖️ **Soft rule awareness** that separates critical issues from informational warnings
 - 📁 **Excel import/export** support
-- 🗄️ **SQLite database** with 31,619 official terms
+- 🗄️ **SQLite database** with 31,652 official terms
 - 📋 **All 31 business rules** (BR01-BR31) from the original ICT
 
 ## Quick Start
@@ -201,7 +201,7 @@ The validator implements all 31 business rules from the ICT, plus context-specif
 
 The validator uses an SQLite database (`data/mtx.db`) containing:
 
-- **31,619 terms** - All FoodEx2 food items
+- **31,652 terms** - All FoodEx2 food items (MTX v16.3)
 - **39 hierarchies** - Classification structures
 - **51 attributes** - Facets for describing food characteristics
 - **88,642 relationships** - Term-hierarchy mappings
@@ -224,7 +224,7 @@ curl http://localhost:5001/api/database/info
 ```
 
 Response includes:
-- **Catalogue version** (e.g., MTX v16.2)
+- **Catalogue version** (e.g., MTX v16.3)
 - **Total terms** and hierarchies
 - **Version distribution** across all terms
 - **Recent updates** from release notes
@@ -259,7 +259,7 @@ The database is based on the official MTX catalogue from EFSA. To update:
    curl http://localhost:5001/api/database/info | jq '.catalogue'
    ```
 
-**Note**: The current database (v16.2) contains terms spanning versions 3.0 through 16.2, with most terms (66%) from version 8.9.
+**Note**: The current database (v16.3) contains terms spanning versions 3.0 through 16.3, with most terms (66%) from version 8.9. Version 16.3 added 372 new terms.
 
 ## Project Structure
 
@@ -363,10 +363,10 @@ To add more validation rules:
 
 ## MTX Catalogue Information
 
-- **Version**: 16.2
+- **Version**: 16.3
 - **Status**: PUBLISHED MINOR
-- **Terms**: 31,619
-- **Last Update**: See release notes in database
+- **Terms**: 31,652
+- **Last Update**: 2025-10-02 (see release notes in database)
 
 ## Contributing
 
