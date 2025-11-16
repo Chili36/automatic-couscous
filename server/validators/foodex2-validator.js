@@ -334,12 +334,33 @@ class FoodEx2Validator {
     async getFacetGroupName(groupId) {
         const groupNames = {
             'F01': 'Source',
-            'F02': 'Part consumed/analysed',
-            'F03': 'Physical state',
+            'F02': 'Part-nature',
+            'F03': 'Physical-state',
             'F04': 'Ingredient',
+            'F06': 'Surrounding-medium',
+            'F07': 'Fat-content',
+            'F08': 'Sweetening-agent',
+            'F09': 'Fortification-agent',
+            'F10': 'Qualitative-info',
+            'F11': 'Alcohol-content',
+            'F12': 'Dough-Mass',
+            'F17': 'Extent-of-cooking',
+            'F18': 'Packaging-format',
+            'F19': 'Packaging-material',
+            'F20': 'Part-consumed-analysed',
+            'F21': 'Production-method',
+            'F22': 'Preparation-production-place',
+            'F23': 'Target-consumer',
+            'F24': 'Intended-use',
+            'F25': 'Risky-Ingredient',
+            'F26': 'Generic-term',
             'F27': 'Source-commodities',
-            'F28': 'Process'
-            // Add more as needed
+            'F28': 'Process',
+            'F29': 'Purpose-of-raising',
+            'F30': 'Reproductive-level',
+            'F31': 'Animal-age-class',
+            'F32': 'Gender',
+            'F33': 'Legislative-classes'
         };
 
         return groupNames[groupId] || groupId;
