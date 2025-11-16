@@ -179,6 +179,32 @@ class VBAValidator {
                     type: 'STRUCTURE'
                 });
                 isValid = false;
+                continue;
+            }
+
+            // Check if facet group exists in FoodEx2 standard
+            // Valid groups: F01-F12 and F17-F34 (29 groups total)
+            // Reserved/undefined: F05, F13, F14, F15, F16
+            const VALID_FACET_GROUPS = [
+                'F01', 'F02', 'F03', 'F04', 'F06', 'F07', 'F08', 'F09', 'F10',
+                'F11', 'F12', 'F17', 'F18', 'F19', 'F20', 'F21', 'F22', 'F23',
+                'F24', 'F25', 'F26', 'F27', 'F28', 'F29', 'F30', 'F31', 'F32',
+                'F33', 'F34'
+            ];
+
+            if (!VALID_FACET_GROUPS.includes(groupId)) {
+                const reservedGroups = ['F05', 'F13', 'F14', 'F15', 'F16'];
+                const message = reservedGroups.includes(groupId)
+                    ? `Facet group '${groupId}' is reserved and not defined in FoodEx2. Please use one of the 29 valid facet groups (F01-F12, F17-F34).`
+                    : `Facet group '${groupId}' does not exist in FoodEx2. Valid groups are: F01-F12 and F17-F34.`;
+
+                warnings.push({
+                    rule: 'VBA-GROUP',
+                    message: message,
+                    severity: 'ERROR',
+                    type: 'INVALID_FACET_GROUP'
+                });
+                isValid = false;
             }
         }
 
@@ -297,7 +323,7 @@ class VBAValidator {
                 'F02': 'Part-nature (part of plant/animal)',
                 'F03': 'Physical state',
                 'F04': 'Ingredient',
-                'F05': 'Reserved',  // Not used in current schema
+                // F05, F13-F16 are reserved/undefined (not in FoodEx2 standard)
                 'F06': 'Medium',
                 'F07': 'Fat content',
                 'F08': 'Sweetening agent',
@@ -305,10 +331,6 @@ class VBAValidator {
                 'F10': 'Qualitative info',
                 'F11': 'Alcohol content',
                 'F12': 'Dough',
-                'F13': 'Reserved',  // Not used
-                'F14': 'Reserved',  // Not used
-                'F15': 'Reserved',  // Not used
-                'F16': 'Reserved',  // Not used
                 'F17': 'Extent of cooking',
                 'F18': 'Packing format',
                 'F19': 'Packing material',
