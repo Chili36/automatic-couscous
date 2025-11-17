@@ -48,6 +48,7 @@ app.post('/api/validate', async (req, res) => {
             infoWarnings: result.infoWarnings,
             baseTerm: result.baseTerm,
             facets: result.facets || [],
+            facetInterpretations: result.facetInterpretations || [],
             cleanedCode: result.cleanedCode || result.originalCode,
             interpretedDescription: result.interpretedDescription,
             severity: result.severity
