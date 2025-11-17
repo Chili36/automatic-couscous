@@ -360,7 +360,8 @@ class FoodEx2Validator {
             'F30': 'Reproductive-level',
             'F31': 'Animal-age-class',
             'F32': 'Gender',
-            'F33': 'Legislative-classes'
+            'F33': 'Legislative-classes',
+            'F34': 'Host-sampled'
         };
 
         return groupNames[groupId] || groupId;
