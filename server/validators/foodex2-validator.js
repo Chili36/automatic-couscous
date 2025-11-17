@@ -216,9 +216,12 @@ class FoodEx2Validator {
         const isValid = !hasBlockingIssues;
 
         // Get interpreted description
-        const interpretedDescription = vbaResult.baseTerm ? 
-            await this.getInterpretedDescription(vbaResult.baseTerm, vbaResult.cleanedFacets || []) : 
+        const interpretedDescription = vbaResult.baseTerm ?
+            await this.getInterpretedDescription(vbaResult.baseTerm, vbaResult.cleanedFacets || []) :
             null;
+
+        // Get structured facet interpretations
+        const facetInterpretations = await this.getFacetInterpretations(vbaResult.cleanedFacets || []);
 
         return {
             valid: isValid,
@@ -226,6 +229,7 @@ class FoodEx2Validator {
             cleanedCode: vbaResult.cleanedCode,
             baseTerm: vbaResult.baseTerm,
             facets: vbaResult.cleanedFacets || [],
+            facetInterpretations,
             interpretedDescription,
             warnings: allWarnings,
             hardWarnings: categorizedWarnings.hardWarnings,
@@ -310,10 +314,10 @@ class FoodEx2Validator {
         // Add facet descriptions
         for (const facet of facets) {
             const [groupId, descriptorCode] = facet.split('.');
-            
+
             // Get facet group name
             const groupName = await this.getFacetGroupName(groupId);
-            
+
             // Get descriptor name
             const descriptor = await this.db.get(
                 'SELECT extended_name as name FROM terms WHERE term_code = ?',
@@ -326,6 +330,38 @@ class FoodEx2Validator {
         }
 
         return description;
+    }
+
+    /**
+     * Get structured facet interpretations for display
+     */
+    async getFacetInterpretations(facets) {
+        if (!facets || facets.length === 0) return [];
+
+        const interpretations = [];
+
+        for (const facet of facets) {
+            const [groupId, descriptorCode] = facet.split('.');
+
+            // Get facet group name
+            const groupName = await this.getFacetGroupName(groupId);
+
+            // Get descriptor name
+            const descriptor = await this.db.get(
+                'SELECT extended_name as name FROM terms WHERE term_code = ?',
+                [descriptorCode]
+            );
+
+            if (groupName && descriptor) {
+                interpretations.push({
+                    code: facet,
+                    group: groupName,
+                    descriptor: descriptor.name
+                });
+            }
+        }
+
+        return interpretations;
     }
 
     /**
