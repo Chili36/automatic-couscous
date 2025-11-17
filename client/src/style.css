@@ -461,6 +461,32 @@ select:focus {
   min-width: 100px;
 }
 
+/* Facet interpretations */
+.facet-interpretations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.facet-interpretation {
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.facet-code {
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.facet-separator {
+  color: #6b7280;
+  margin: 0 0.5rem;
+}
+
+.facet-meaning {
+  color: #374151;
+}
+
 /* Warnings */
 .warnings {
   margin-top: 1rem;

@@ -391,16 +391,18 @@ function renderResults() {
             <span class="label">Type:</span>
             <span title="${result.baseTerm.type}">${getTermTypeDescription(result.baseTerm.type)}</span>
           </div>
-          ${result.facets && result.facets.length > 0 ? `
+          ${result.facetInterpretations && result.facetInterpretations.length > 0 ? `
             <div class="info-row">
-              <span class="label">Facets:</span>
-              <span>${result.facets.map(f => escapeHtml(f)).join(' | ')}</span>
-            </div>
-          ` : ''}
-          ${result.interpretedDescription ? `
-            <div class="info-row">
-              <span class="label">Interpreted:</span>
-              <span>${escapeHtml(result.interpretedDescription)}</span>
+              <span class="label">Interpreted breakdown:</span>
+              <div class="facet-interpretations">
+                ${result.facetInterpretations.map(f => `
+                  <div class="facet-interpretation">
+                    <span class="facet-code">${escapeHtml(f.code)}</span>
+                    <span class="facet-separator">–</span>
+                    <span class="facet-meaning">${escapeHtml(f.group)}: ${escapeHtml(f.descriptor)}</span>
+                  </div>
+                `).join('')}
+              </div>
             </div>
           ` : ''}
         </div>
