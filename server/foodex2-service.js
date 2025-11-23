@@ -63,9 +63,9 @@ class FoodEx2Service {
     async searchTerms(query, options = {}) {
         const searchType = options.type || 'all';
         const limit = options.limit || 50;
-        
+
         let sql;
-        const params = [`%${query}%`];
+        const params = [];
 
         switch (searchType) {
             case 'baseTerm':
@@ -105,7 +105,7 @@ class FoodEx2Service {
                     ORDER BY t.extended_name
                     LIMIT ?
                 `;
-                params.push(`%${query}%`, limit);
+                params.push(`%${query}%`, `%${query}%`, limit);
                 break;
 
             default:
