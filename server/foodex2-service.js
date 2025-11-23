@@ -70,13 +70,13 @@ class FoodEx2Service {
         switch (searchType) {
             case 'baseTerm':
                 sql = `
-                    SELECT term_code as code, extended_name as name, term_type as type, detail_level, term_type
-                    FROM terms 
+                    SELECT term_code as code, extended_name as name, term_type as type, scope_note as scopeNote, detail_level
+                    FROM terms
                     WHERE (term_code LIKE ? OR extended_name LIKE ?)
                     AND term_type NOT IN ('f', 'h')
                     AND NOT deprecated
                     AND status != 'dismissed'
-                    ORDER BY 
+                    ORDER BY
                         CASE WHEN term_code = ? THEN 0 ELSE 1 END,
                         CASE WHEN term_code LIKE ? THEN 0 ELSE 1 END,
                         extended_name
@@ -100,10 +100,10 @@ class FoodEx2Service {
 
             default:
                 sql = `
-                    SELECT term_code as code, extended_name as name, term_type as type, detail_level, term_type
-                    FROM terms 
+                    SELECT term_code as code, extended_name as name, term_type as type, scope_note as scopeNote, detail_level
+                    FROM terms
                     WHERE term_code LIKE ? OR extended_name LIKE ?
-                    ORDER BY 
+                    ORDER BY
                         CASE WHEN term_code = ? THEN 0 ELSE 1 END,
                         extended_name
                     LIMIT ?

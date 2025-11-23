@@ -334,8 +334,8 @@ async function searchText() {
 
   try {
     const response = await api.get(`/search?q=${encodeURIComponent(query)}`)
-    if (response.data.results && response.data.results.length > 0) {
-      displaySearchResults(response.data.results)
+    if (response.data && response.data.length > 0) {
+      displaySearchResults(response.data)
     } else {
       showError('No results found')
     }
