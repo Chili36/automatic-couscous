@@ -657,6 +657,21 @@ footer a:hover {
   text-decoration: underline;
 }
 
+/* Search results */
+.search-results-header {
+  margin-bottom: 1.5rem;
+}
+
+.search-results-header h3 {
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.result-item.search-result {
+  background: var(--card-bg);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .container {
