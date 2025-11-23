@@ -374,6 +374,7 @@ function displaySearchResults(results) {
       <div class="result-item search-result">
         <div class="result-header">
           <h3 class="code">${escapeHtml(term.code)}</h3>
+          ${term.matchedIn ? `<span class="match-badge">${term.matchedIn === 'code' ? 'Code match' : 'Name match'}</span>` : ''}
         </div>
         <div class="term-info">
           <div class="info-row">

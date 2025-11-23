@@ -70,7 +70,17 @@ class FoodEx2Service {
         switch (searchType) {
             case 'baseTerm':
                 sql = `
-                    SELECT term_code as code, extended_name as name, term_type as type, scope_note as scopeNote, detail_level
+                    SELECT
+                        term_code as code,
+                        extended_name as name,
+                        term_type as type,
+                        scope_note as scopeNote,
+                        detail_level,
+                        CASE
+                            WHEN term_code LIKE ? THEN 'code'
+                            WHEN extended_name LIKE ? THEN 'name'
+                            ELSE 'other'
+                        END as matchedIn
                     FROM terms
                     WHERE (term_code LIKE ? OR extended_name LIKE ?)
                     AND term_type NOT IN ('f', 'h')
@@ -82,7 +92,7 @@ class FoodEx2Service {
                         extended_name
                     LIMIT ?
                 `;
-                params.push(`%${query}%`, query, `${query}%`, limit);
+                params.push(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`, query, `${query}%`, limit);
                 break;
 
             case 'facet':
@@ -100,7 +110,17 @@ class FoodEx2Service {
 
             default:
                 sql = `
-                    SELECT term_code as code, extended_name as name, term_type as type, scope_note as scopeNote, detail_level
+                    SELECT
+                        term_code as code,
+                        extended_name as name,
+                        term_type as type,
+                        scope_note as scopeNote,
+                        detail_level,
+                        CASE
+                            WHEN term_code LIKE ? THEN 'code'
+                            WHEN extended_name LIKE ? THEN 'name'
+                            ELSE 'other'
+                        END as matchedIn
                     FROM terms
                     WHERE term_code LIKE ? OR extended_name LIKE ?
                     ORDER BY
@@ -108,7 +128,7 @@ class FoodEx2Service {
                         extended_name
                     LIMIT ?
                 `;
-                params.push(`%${query}%`, query, limit);
+                params.push(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`, query, limit);
         }
 
         return await this.db.all(sql, params);
