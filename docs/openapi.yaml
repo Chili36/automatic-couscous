@@ -1,0 +1,770 @@
+openapi: 3.0.3
+info:
+  title: FoodEx2 Code Validator API
+  description: |
+    The FoodEx2 Code Validator API provides comprehensive validation services for EFSA's FoodEx2 
+    food classification and description system. It validates codes against the MTX v16.3 catalogue 
+    and implements all 31 business rules from the original ICT (Interpreting and Checking Tool).
+    
+    ## Features
+    - Single and batch code validation
+    - Term search with fuzzy matching
+    - Hierarchy navigation and term details
+    - Excel/CSV export of validation results
+    - Comprehensive rule documentation
+    - Database version information
+    
+    ## Authentication
+    Currently, the API does not require authentication. In production environments, 
+    consider implementing API key or OAuth2 authentication.
+  version: 1.0.0
+  contact:
+    name: FoodEx2 Validator Team
+    url: https://github.com/Chili36/automatic-couscous
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5001/api
+    description: Development server
+  - url: https://api.foodex2validator.example.com/api
+    description: Production server
+
+tags:
+  - name: Validation
+    description: Code validation endpoints
+  - name: Search
+    description: Term search and lookup
+  - name: Information
+    description: System information and metadata
+  - name: Export
+    description: Data export functionality
+
+paths:
+  /validate:
+    post:
+      tags:
+        - Validation
+      summary: Validate a single FoodEx2 code
+      description: |
+        Validates a FoodEx2 code against all validation rules including:
+        - VBA structural rules (9 rules)
+        - Business rules (31 rules)
+        - Soft rules (informational)
+      operationId: validateCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  description: The FoodEx2 code to validate
+                  example: "A000J#F01.A07XG"
+                context:
+                  type: string
+                  description: Validation context
+                  default: ICT
+                  enum:
+                    - ICT
+                    - MONITORING
+                    - REPORTING
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResult'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /validate/batch:
+    post:
+      tags:
+        - Validation
+      summary: Validate multiple FoodEx2 codes
+      description: Validates an array of FoodEx2 codes and returns aggregated results with statistics
+      operationId: validateBatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - codes
+              properties:
+                codes:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of FoodEx2 codes to validate
+                  example: ["A000J#F01.A07XG", "A00ZX", "A000K#F20.A07KS"]
+                context:
+                  type: string
+                  description: Validation context for all codes
+                  default: ICT
+      responses:
+        '200':
+          description: Batch validation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ValidationResult'
+                  statistics:
+                    $ref: '#/components/schemas/ValidationStatistics'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /validate/export:
+    post:
+      tags:
+        - Export
+      summary: Export validation results
+      description: Validates codes and exports results as CSV or Excel file
+      operationId: exportValidation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - codes
+              properties:
+                codes:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of FoodEx2 codes to validate and export
+                format:
+                  type: string
+                  description: Export format
+                  default: csv
+                  enum:
+                    - csv
+                    - xlsx
+      responses:
+        '200':
+          description: Export file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /search:
+    get:
+      tags:
+        - Search
+      summary: Search for FoodEx2 terms
+      description: |
+        Search for terms in the FoodEx2 catalogue using fuzzy matching.
+        Supports searching by code, name, or scientific name.
+      operationId: searchTerms
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query string
+          schema:
+            type: string
+            minLength: 1
+          example: "apple"
+        - name: type
+          in: query
+          description: Type of search
+          schema:
+            type: string
+            default: all
+            enum:
+              - all
+              - code
+              - name
+              - scientific
+        - name: limit
+          in: query
+          description: Maximum number of results
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 500
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SearchResult'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /term/{code}:
+    get:
+      tags:
+        - Search
+      summary: Get term details
+      description: Retrieve detailed information about a specific FoodEx2 term
+      operationId: getTermDetails
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: FoodEx2 term code
+          schema:
+            type: string
+          example: "A000J"
+      responses:
+        '200':
+          description: Term details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TermDetails'
+        '404':
+          description: Term not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      tags:
+        - Information
+      summary: Health check
+      description: Check if the API service is running and healthy
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                    description: Uptime in seconds
+                  memory:
+                    type: object
+                    properties:
+                      rss:
+                        type: number
+                      heapTotal:
+                        type: number
+                      heapUsed:
+                        type: number
+                      external:
+                        type: number
+        '500':
+          description: Service unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /rules:
+    get:
+      tags:
+        - Information
+      summary: Get validation rules
+      description: |
+        Retrieve all validation rules used by the system, including:
+        - VBA structural rules
+        - Business rules with severity levels
+        - Soft rules (informational)
+      operationId: getRules
+      responses:
+        '200':
+          description: Validation rules
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vba:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VbaRule'
+                  business:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BusinessRule'
+                  softRules:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SoftRule'
+                  infoRules:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InfoRule'
+                  hardRules:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/HardRule'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /database/info:
+    get:
+      tags:
+        - Information
+      summary: Get database information
+      description: |
+        Retrieve information about the FoodEx2 database including:
+        - MTX catalogue version
+        - Term counts by type
+        - Last update information
+        - Database statistics
+      operationId: getDatabaseInfo
+      responses:
+        '200':
+          description: Database information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseInfo'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    ValidationResult:
+      type: object
+      properties:
+        code:
+          type: string
+          description: The validated FoodEx2 code
+        valid:
+          type: boolean
+          description: Overall validation result
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Warning'
+          description: All validation warnings
+        hardWarnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Warning'
+          description: Critical warnings that block validation
+        softWarnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Warning'
+          description: Non-critical warnings for data quality
+        infoWarnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Warning'
+          description: Informational messages
+        baseTerm:
+          $ref: '#/components/schemas/BaseTerm'
+        facets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Facet'
+        facetInterpretations:
+          type: array
+          items:
+            $ref: '#/components/schemas/FacetInterpretation'
+        cleanedCode:
+          type: string
+          description: Code after cleaning (whitespace removal, etc.)
+        interpretedDescription:
+          type: string
+          description: Human-readable interpretation of the code
+        severity:
+          type: string
+          enum:
+            - HIGH
+            - MEDIUM
+            - LOW
+            - INFO
+
+    Warning:
+      type: object
+      properties:
+        ruleId:
+          type: string
+          description: Unique rule identifier
+        message:
+          type: string
+          description: Warning message
+        severity:
+          type: string
+          enum:
+            - HIGH
+            - MEDIUM
+            - LOW
+            - INFO
+        type:
+          type: string
+          enum:
+            - VBA
+            - BUSINESS
+            - SOFT
+        details:
+          type: object
+          description: Additional warning details
+
+    BaseTerm:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        scientificName:
+          type: string
+          nullable: true
+        version:
+          type: string
+
+    Facet:
+      type: object
+      properties:
+        code:
+          type: string
+        descriptor:
+          type: string
+        category:
+          type: string
+        value:
+          type: string
+
+    FacetInterpretation:
+      type: object
+      properties:
+        facetCode:
+          type: string
+        facetHeader:
+          type: string
+        facetDesc:
+          type: string
+        descriptorCode:
+          type: string
+        descriptorType:
+          type: string
+        descriptorValue:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
+
+    SearchResult:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        scientificName:
+          type: string
+          nullable: true
+        scopeNote:
+          type: string
+          nullable: true
+        termType:
+          type: string
+        version:
+          type: string
+        score:
+          type: number
+          description: Search relevance score
+
+    TermDetails:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        scientificName:
+          type: string
+          nullable: true
+        scopeNote:
+          type: string
+          nullable: true
+        termType:
+          type: string
+        version:
+          type: string
+        parentCode:
+          type: string
+          nullable: true
+        parentName:
+          type: string
+          nullable: true
+        children:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+              name:
+                type: string
+              type:
+                type: string
+        hierarchy:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+              name:
+                type: string
+        facets:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+              header:
+                type: string
+              category:
+                type: string
+
+    ValidationStatistics:
+      type: object
+      properties:
+        total:
+          type: integer
+        valid:
+          type: integer
+        invalid:
+          type: integer
+        withWarnings:
+          type: integer
+        withSoftWarnings:
+          type: integer
+        withInfoMessages:
+          type: integer
+        averageWarnings:
+          type: number
+        ruleViolations:
+          type: object
+          additionalProperties:
+            type: integer
+
+    DatabaseInfo:
+      type: object
+      properties:
+        catalogue:
+          type: object
+          properties:
+            code:
+              type: string
+            name:
+              type: string
+            version:
+              type: string
+            lastUpdate:
+              type: string
+            status:
+              type: string
+        statistics:
+          type: object
+          properties:
+            totalTerms:
+              type: integer
+            baseTerms:
+              type: integer
+            facets:
+              type: integer
+            hierarchyNodes:
+              type: integer
+            descriptors:
+              type: integer
+        versions:
+          type: array
+          items:
+            type: object
+            properties:
+              version:
+                type: string
+              count:
+                type: integer
+        lastUpdated:
+          type: string
+          format: date-time
+
+    VbaRule:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+
+    BusinessRule:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+        textSeverity:
+          type: string
+        trigger:
+          type: string
+
+    SoftRule:
+      type: object
+      properties:
+        id:
+          type: string
+        message:
+          type: string
+        severity:
+          type: string
+        type:
+          type: string
+
+    InfoRule:
+      type: object
+      properties:
+        id:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+
+    HardRule:
+      type: object
+      properties:
+        id:
+          type: string
+        message:
+          type: string
+        severity:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type
+        message:
+          type: string
+          description: Detailed error message
+        stack:
+          type: string
+          description: Stack trace (only in development)
+        timestamp:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication (optional - for future implementation)
+    
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token authentication (optional - for future implementation)
