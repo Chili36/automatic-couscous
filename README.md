@@ -26,7 +26,6 @@ Example: `A01DJ#F28.A07GH$F01.A05YG` = "Apples, poached, from apple plant"
 - 💻 **Web interface** for interactive validation
 - 📄 **CSV/Excel export** for validation results
 - ⚖️ **Soft rule awareness** that separates critical issues from informational warnings
-- 📁 **Excel import/export** support
 - 🗄️ **SQLite database** with 31,652 official terms
 - 📋 **All 31 business rules** (BR01-BR31) from the original ICT
 
