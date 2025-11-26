@@ -162,18 +162,6 @@ function initApp() {
               <button class="btn-primary" id="search-btn">Search</button>
             </div>
           </div>
-
-          <div class="resources">
-            <h3>FoodEx2 Resources</h3>
-            <div class="resource-links">
-              <a href="https://www.efsa.europa.eu/en/data/data-standardisation" target="_blank" rel="noopener noreferrer" class="resource-link">
-                <span>📊</span> EFSA FoodEx2 Data Standardisation
-              </a>
-              <a href="https://github.com/openefsa/catalogue-browser/wiki" target="_blank" rel="noopener noreferrer" class="resource-link">
-                <span>🔍</span> EFSA Catalogue Browser (GitHub)
-              </a>
-            </div>
-          </div>
         </section>
 
         <section id="results" class="results-section" style="display: none;">
@@ -207,7 +195,18 @@ function initApp() {
       </main>
 
       <footer>
-        <p>Backend: <a href="http://localhost:5001/api/health" target="_blank">API Status</a> | 
+        <div class="resources">
+          <h3>FoodEx2 Resources</h3>
+          <div class="resource-links">
+            <a href="https://www.efsa.europa.eu/en/data/data-standardisation" target="_blank" rel="noopener noreferrer" class="resource-link">
+              <span>📊</span> EFSA FoodEx2 Data Standardisation
+            </a>
+            <a href="https://github.com/openefsa/catalogue-browser/wiki" target="_blank" rel="noopener noreferrer" class="resource-link">
+              <span>🔍</span> EFSA Catalogue Browser (GitHub)
+            </a>
+          </div>
+        </div>
+        <p>Backend: <a href="http://localhost:5001/api/health" target="_blank">API Status</a> |
            <a href="http://localhost:5001/api/rules" target="_blank">View Rules</a></p>
       </footer>
     </div>
