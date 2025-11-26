@@ -657,6 +657,32 @@ footer a:hover {
   text-decoration: underline;
 }
 
+/* Search results */
+.search-results-header {
+  margin-bottom: 1.5rem;
+}
+
+.search-results-header h3 {
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.result-item.search-result {
+  background: var(--card-bg);
+}
+
+.match-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary-color);
+  border: 1px solid rgba(37, 99, 235, 0.3);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .container {

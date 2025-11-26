@@ -112,14 +112,15 @@ function initApp() {
           <div class="tabs">
             <button class="tab active" data-tab="single">Single Validation</button>
             <button class="tab" data-tab="batch">Batch Validation</button>
+            <button class="tab" data-tab="search">Search/Lookup</button>
           </div>
 
           <div class="tab-content active" id="single-tab">
             <div class="input-group">
               <label for="single-code">Enter FoodEx2 Code</label>
-              <input 
-                type="text" 
-                id="single-code" 
+              <input
+                type="text"
+                id="single-code"
                 placeholder="e.g., A0B9Z#F28.A07JS"
                 autocomplete="off"
               >
@@ -130,12 +131,35 @@ function initApp() {
           <div class="tab-content" id="batch-tab">
             <div class="input-group">
               <label for="batch-codes">Enter Codes (one per line)</label>
-              <textarea 
-                id="batch-codes" 
+              <textarea
+                id="batch-codes"
                 rows="6"
                 placeholder="A0B9Z\nA0EZS\nA0BXM#F28.A07JS"
               ></textarea>
               <button class="btn-primary" id="validate-batch">Validate All</button>
+            </div>
+          </div>
+
+          <div class="tab-content" id="search-tab">
+            <div class="input-group">
+              <label for="lookup-code">Lookup by Code</label>
+              <input
+                type="text"
+                id="lookup-code"
+                placeholder="e.g., A0B9Z"
+                autocomplete="off"
+              >
+              <button class="btn-primary" id="lookup-btn">Lookup</button>
+            </div>
+            <div class="input-group">
+              <label for="search-text">Search by Text</label>
+              <input
+                type="text"
+                id="search-text"
+                placeholder="e.g., apple"
+                autocomplete="off"
+              >
+              <button class="btn-primary" id="search-btn">Search</button>
             </div>
           </div>
 
@@ -206,6 +230,10 @@ function setupEventListeners() {
   document.getElementById('validate-batch').addEventListener('click', validateBatch)
   document.getElementById('download-results').addEventListener('click', downloadResults)
 
+  // Search/Lookup buttons
+  document.getElementById('lookup-btn').addEventListener('click', lookupCode)
+  document.getElementById('search-btn').addEventListener('click', searchText)
+
   // Filter dropdown
   document.getElementById('result-filter').addEventListener('change', (e) => {
     currentFilter = e.target.value
@@ -215,6 +243,16 @@ function setupEventListeners() {
   // Enter key for single validation
   document.getElementById('single-code').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') validateSingle()
+  })
+
+  // Enter key for lookup
+  document.getElementById('lookup-code').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') lookupCode()
+  })
+
+  // Enter key for search
+  document.getElementById('search-text').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') searchText()
   })
 }
 
@@ -255,12 +293,52 @@ async function validateBatch() {
   }
 
   const codes = codesText.split('\n').map(c => c.trim()).filter(c => c)
-  
+
   showLoading()
-  
+
   try {
     const response = await api.post('/validate/batch', { codes })
     displayResults(response.data.results, response.data.statistics)
+  } catch (error) {
+    showError(error.response?.data?.error || error.message)
+  }
+}
+
+// Lookup code
+async function lookupCode() {
+  const code = document.getElementById('lookup-code').value.trim()
+  if (!code) {
+    showError('Please enter a code to lookup')
+    return
+  }
+
+  showLoading()
+
+  try {
+    const response = await api.get(`/term/${encodeURIComponent(code)}`)
+    displaySearchResults([response.data])
+  } catch (error) {
+    showError(error.response?.data?.error || error.message)
+  }
+}
+
+// Search text
+async function searchText() {
+  const query = document.getElementById('search-text').value.trim()
+  if (!query) {
+    showError('Please enter a search term')
+    return
+  }
+
+  showLoading()
+
+  try {
+    const response = await api.get(`/search?q=${encodeURIComponent(query)}`)
+    if (response.data && response.data.length > 0) {
+      displaySearchResults(response.data)
+    } else {
+      showError('No results found')
+    }
   } catch (error) {
     showError(error.response?.data?.error || error.message)
   }
@@ -275,6 +353,50 @@ function displayResults(results, statistics = null) {
   document.getElementById('result-filter').value = 'all'
 
   renderResults()
+}
+
+// Display search/lookup results
+function displaySearchResults(results) {
+  const resultsSection = document.getElementById('results')
+  const content = document.getElementById('results-content')
+
+  currentResults = []
+  currentStatistics = null
+  updateExportState()
+
+  resultsSection.style.display = 'block'
+
+  content.innerHTML = `
+    <div class="search-results-header">
+      <h3>Found ${results.length} result${results.length !== 1 ? 's' : ''}</h3>
+    </div>
+    ${results.map((term) => `
+      <div class="result-item search-result">
+        <div class="result-header">
+          <h3 class="code">${escapeHtml(term.code)}</h3>
+          ${term.matchedIn ? `<span class="match-badge">${term.matchedIn === 'code' ? 'Code match' : 'Name match'}</span>` : ''}
+        </div>
+        <div class="term-info">
+          <div class="info-row">
+            <span class="label">Name:</span>
+            <span>${escapeHtml(term.name)}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Type:</span>
+            <span title="${term.type}">${getTermTypeDescription(term.type)}</span>
+          </div>
+          ${term.scopeNote ? `
+            <div class="info-row">
+              <span class="label">Scope Note:</span>
+              <span>${escapeHtml(term.scopeNote)}</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `).join('')}
+  `
+
+  resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 }
 
 // Apply filter and re-render

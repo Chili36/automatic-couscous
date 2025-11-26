@@ -63,26 +63,36 @@ class FoodEx2Service {
     async searchTerms(query, options = {}) {
         const searchType = options.type || 'all';
         const limit = options.limit || 50;
-        
+
         let sql;
-        const params = [`%${query}%`];
+        const params = [];
 
         switch (searchType) {
             case 'baseTerm':
                 sql = `
-                    SELECT term_code as code, extended_name as name, term_type as type, detail_level, term_type
-                    FROM terms 
+                    SELECT
+                        term_code as code,
+                        extended_name as name,
+                        term_type as type,
+                        scope_note as scopeNote,
+                        detail_level,
+                        CASE
+                            WHEN term_code LIKE ? THEN 'code'
+                            WHEN extended_name LIKE ? THEN 'name'
+                            ELSE 'other'
+                        END as matchedIn
+                    FROM terms
                     WHERE (term_code LIKE ? OR extended_name LIKE ?)
                     AND term_type NOT IN ('f', 'h')
                     AND NOT deprecated
                     AND status != 'dismissed'
-                    ORDER BY 
+                    ORDER BY
                         CASE WHEN term_code = ? THEN 0 ELSE 1 END,
                         CASE WHEN term_code LIKE ? THEN 0 ELSE 1 END,
                         extended_name
                     LIMIT ?
                 `;
-                params.push(`%${query}%`, query, `${query}%`, limit);
+                params.push(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`, query, `${query}%`, limit);
                 break;
 
             case 'facet':
@@ -95,20 +105,30 @@ class FoodEx2Service {
                     ORDER BY t.extended_name
                     LIMIT ?
                 `;
-                params.push(`%${query}%`, limit);
+                params.push(`%${query}%`, `%${query}%`, limit);
                 break;
 
             default:
                 sql = `
-                    SELECT term_code as code, extended_name as name, term_type as type, detail_level, term_type
-                    FROM terms 
+                    SELECT
+                        term_code as code,
+                        extended_name as name,
+                        term_type as type,
+                        scope_note as scopeNote,
+                        detail_level,
+                        CASE
+                            WHEN term_code LIKE ? THEN 'code'
+                            WHEN extended_name LIKE ? THEN 'name'
+                            ELSE 'other'
+                        END as matchedIn
+                    FROM terms
                     WHERE term_code LIKE ? OR extended_name LIKE ?
-                    ORDER BY 
+                    ORDER BY
                         CASE WHEN term_code = ? THEN 0 ELSE 1 END,
                         extended_name
                     LIMIT ?
                 `;
-                params.push(`%${query}%`, query, limit);
+                params.push(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`, query, limit);
         }
 
         return await this.db.all(sql, params);
