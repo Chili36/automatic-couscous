@@ -104,7 +104,9 @@ def import_mtx_to_sqlite(excel_path, db_path):
             valid_to TEXT,
             status TEXT,
             deprecated INTEGER DEFAULT 0,
-            hierarchy_groups TEXT
+            hierarchy_groups TEXT,
+            is_reporting INTEGER DEFAULT 0,
+            is_exposure INTEGER DEFAULT 0
         )
     ''')
     
@@ -431,7 +433,7 @@ if __name__ == "__main__":
     # Default paths
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_dir = os.path.dirname(script_dir)
-    default_excel = os.path.join(project_dir, "data", "MTX_16.3.xlsx")
+    default_excel = os.path.join(project_dir, "data", "MTX_17.0.xlsx")
     default_db = os.path.join(project_dir, "data", "mtx.db")
 
     # Use command-line arguments if provided

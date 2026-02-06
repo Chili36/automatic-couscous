@@ -5,7 +5,7 @@ const path = require('path');
 // This script imports the MTX Excel file into SQLite
 // Note: A Python script has already done this, but this is the Node.js version
 
-const excelPath = path.join(__dirname, '../../MTX_16.2.xlsx');
+const excelPath = path.join(__dirname, '../../MTX_17.0.xlsx');
 const dbPath = path.join(__dirname, '../data/mtx.db');
 
 console.log('Reading Excel file...');

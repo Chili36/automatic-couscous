@@ -129,7 +129,7 @@ PORT=5001
 
 # Database
 DATABASE_PATH=/var/www/foodex2-validator/data/mtx.db
-DATABASE_VERSION=MTX v16.3
+DATABASE_VERSION=MTX v17.0
 
 # Frontend
 VITE_PORT=5178

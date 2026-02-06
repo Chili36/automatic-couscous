@@ -34,7 +34,7 @@ The FoodEx2 Code Validator follows a traditional client-server architecture with
 │     Validators        │        Database Layer                │
 │  ┌──────────────┐    │    ┌─────────────────────┐          │
 │  │ VBA Rules    │    │    │  SQLite Database    │          │
-│  ├──────────────┤    │    │   MTX v16.3         │          │
+│  ├──────────────┤    │    │   MTX v17.0         │          │
 │  │Business Rules│    │    │  31,652 terms       │          │
 │  ├──────────────┤    │    └─────────────────────┘          │
 │  │ Soft Rules   │    │                                      │
