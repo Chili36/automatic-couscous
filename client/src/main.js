@@ -104,7 +104,7 @@ function initApp() {
     <div class="container">
       <header>
         <h1>FoodEx2 Code Validator</h1>
-        <p class="subtitle">Validate FoodEx2 codes against MTX catalogue v16.3</p>
+        <p class="subtitle">Validate FoodEx2 codes against MTX catalogue v17.0</p>
       </header>
 
       <main>

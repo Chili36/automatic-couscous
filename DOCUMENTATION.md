@@ -44,7 +44,7 @@ graph TB
     end
     
     subgraph "Data Layer"
-        DB[(SQLite Database<br/>MTX v16.3<br/>31,652 terms)]
+        DB[(SQLite Database<br/>MTX v17.0<br/>31,680 terms)]
         Cache[Cache Manager<br/>TTL: 3600s]
     end
     
@@ -269,7 +269,7 @@ erDiagram
 The SQLite database (converted from MTX Excel) contains:
 
 ```sql
--- Main terms table (31,652 records)
+-- Main terms table (31,680 records)
 CREATE TABLE terms (
     term_code TEXT PRIMARY KEY,      -- e.g., 'A0B9Z'
     extended_name TEXT,              -- e.g., 'Bovine meat'
@@ -282,7 +282,7 @@ CREATE TABLE terms (
     -- ... additional fields
 );
 
--- Term hierarchy relationships (88,642 records)
+-- Term hierarchy relationships (88,817 records)
 CREATE TABLE term_hierarchies (
     term_code TEXT,
     hierarchy_code TEXT,             -- expo, report, master, etc.

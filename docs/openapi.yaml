@@ -3,7 +3,7 @@ info:
   title: FoodEx2 Code Validator API
   description: |
     The FoodEx2 Code Validator API provides comprehensive validation services for EFSA's FoodEx2 
-    food classification and description system. It validates codes against the MTX v16.3 catalogue 
+    food classification and description system. It validates codes against the MTX v17.0 catalogue 
     and implements all 31 business rules from the original ICT (Interpreting and Checking Tool).
     
     ## Features
