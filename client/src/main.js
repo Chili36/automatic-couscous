@@ -390,6 +390,12 @@ function displaySearchResults(results) {
               <span>${escapeHtml(term.scopeNote)}</span>
             </div>
           ` : ''}
+          ${term.implicitFacets && term.implicitFacets.length > 0 ? `
+            <div class="info-row">
+              <span class="label">Implicit Facets:</span>
+              <span>${term.implicitFacets.map(f => `<span class="facet-tag">${escapeHtml(f.facetCode)} – ${escapeHtml(f.descriptor)}</span>`).join(' ')}</span>
+            </div>
+          ` : ''}
         </div>
       </div>
     `).join('')}
@@ -502,6 +508,22 @@ function renderResults() {
         <span class="level-badge ${(result.severity || 'none').toLowerCase()}">${result.severity || 'NONE'}</span>
       </div>
       
+      ${result.cleanedCode && result.cleanedCode !== result.code ? `
+        <div class="corrected-code-banner">
+          <span class="corrected-label">Corrected code:</span>
+          <span class="corrected-value">${escapeHtml(result.cleanedCode)}</span>
+          <span class="corrected-note">(${(() => {
+            const warnings = result.warnings || []
+            const hasImplicit = warnings.some(w => w.rule === 'VBA-IMPLICIT')
+            const hasInvalid = warnings.some(w => w.rule === 'VBA-CATEGORY' || w.rule === 'VBA-FACET404')
+            if (hasImplicit && hasInvalid) return 'implicit and invalid facets removed'
+            if (hasImplicit) return 'implicit facets removed'
+            if (hasInvalid) return 'invalid facets removed'
+            return 'facets removed'
+          })()} — see warnings below)</span>
+        </div>
+      ` : ''}
+
       ${result.baseTerm ? `
         <div class="term-info">
           <div class="info-row">
