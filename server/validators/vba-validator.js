@@ -56,13 +56,13 @@ class VBAValidator {
 
         // 6. Validate facet descriptors exist
         const validatedFacets = [];
-        let invalidCategoryRemoved = false;
+        let invalidFacetRemoved = false;
         for (const facet of cleanedFacets) {
             const isValid = await this.validateFacetDescriptor(facet, warnings);
             if (isValid) {
                 validatedFacets.push(facet);
             } else {
-                invalidCategoryRemoved = true;
+                invalidFacetRemoved = true;
             }
         }
 
@@ -74,7 +74,7 @@ class VBAValidator {
 
         // 9. Build final code
         const finalCode = baseTermCode + this.buildFacetString(validatedFacets);
-        const anyRemoved = implicitRemoved || invalidCategoryRemoved;
+        const anyRemoved = implicitRemoved || invalidFacetRemoved;
 
         return {
             valid: warnings.filter(w => w.severity === 'ERROR').length === 0,
