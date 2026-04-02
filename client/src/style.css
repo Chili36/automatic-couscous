@@ -683,6 +683,47 @@ footer a:hover {
   border: 1px solid rgba(37, 99, 235, 0.3);
 }
 
+.corrected-code-banner {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: rgba(234, 179, 8, 0.08);
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.corrected-label {
+  font-weight: 600;
+  color: #92400e;
+}
+
+.corrected-value {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.corrected-note {
+  color: #78716c;
+  font-size: 0.8rem;
+}
+
+.facet-tag {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-family: monospace;
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--primary-color);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  margin: 0.1rem 0.2rem 0.1rem 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .container {
