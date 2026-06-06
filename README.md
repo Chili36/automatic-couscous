@@ -18,7 +18,7 @@ Example: `A01DJ#F28.A07GH$F01.A05YG` = "Apples, poached, from apple plant"
 
 ## Features
 
-- ✅ **Full code validation** against MTX v17.0 catalogue
+- ✅ **Full code validation** against MTX v17.1 catalogue
 - 🔍 **Term search** with fuzzy matching
 - 📊 **Hierarchy navigation** for exploring food classifications
 - 🏷️ **Facet validation** with valid descriptor lookup
@@ -200,7 +200,7 @@ The validator implements all 31 business rules from the ICT, plus context-specif
 
 The validator uses an SQLite database (`data/mtx.db`) containing:
 
-- **31,680 terms** - All FoodEx2 food items (MTX v17.0)
+- **31,690 terms** - All FoodEx2 food items (MTX v17.1)
 - **39 hierarchies** - Classification structures
 - **51 attributes** - Facets for describing food characteristics
 - **88,817 relationships** - Term-hierarchy mappings
@@ -223,7 +223,7 @@ curl http://localhost:5001/api/database/info
 ```
 
 Response includes:
-- **Catalogue version** (e.g., MTX v17.0)
+- **Catalogue version** (e.g., MTX v17.1)
 - **Total terms** and hierarchies
 - **Version distribution** across all terms
 - **Recent updates** from release notes
@@ -258,7 +258,7 @@ The database is based on the official MTX catalogue from EFSA. To update:
    curl http://localhost:5001/api/database/info | jq '.catalogue'
    ```
 
-**Note**: The current database (v17.0) contains terms spanning versions 3.0 through 17.0, with most terms (66%) from version 8.9. Version 17.0 added 47 new terms.
+**Note**: The current database (v17.1) contains terms spanning versions 3.0 through 17.1, with most terms (66%) from version 8.9. Version 17.1 added 410 new/updated terms.
 
 ## Project Structure
 
@@ -278,7 +278,7 @@ foodex2-validator/
 ├── public/               # Web interface static files
 ├── data/
 │   ├── mtx.db           # SQLite database
-│   ├── MTX_17.0.xlsx    # Source catalogue
+│   ├── MTX_17.1.xlsx    # Source catalogue
 │   ├── BR_Data.csv      # Forbidden processes
 │   ├── warningMessages.txt # Rule definitions
 │   └── warningColors.txt   # UI colors
@@ -362,7 +362,7 @@ To add more validation rules:
 
 ## MTX Catalogue Information
 
-- **Version**: 17.0
+- **Version**: 17.1
 - **Status**: PUBLISHED MINOR
 - **Terms**: 31,680
 - **Last Update**: 2025-10-02 (see release notes in database)
