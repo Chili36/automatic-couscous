@@ -285,33 +285,27 @@ async checkBR12(baseTerm, explicitFacets, warnings) {
 
 ### BR13: Physical State Creates Derivatives
 
-**Logic:**
-- F03 physical state cannot be applied to raw commodities
-- Exception: Some physical states don't create derivatives
+**Logic** (per ICT `warningMessages.txt:13`):
+- "if a physical state facet is added to a food rpc term" → HIGH warning
+- Unconditional: **any** F03 facet on a raw primary commodity creates a new derivative
+- No allowlist, no forbidden subset — F03 simply can't appear on raw
 
 **Implementation:**
 ```javascript
 async checkBR13(baseTerm, explicitFacets, warnings) {
-    if (baseTerm.type !== 'r') return;
-    
-    const forbiddenPhysicalStates = [
-        // List of physical states that create derivatives
-        'A0C0D', 'A0C0E', 'A0C0F' // Examples: dried, frozen, etc.
-    ];
-    
-    for (const facet of explicitFacets.filter(f => f.startsWith('F03.'))) {
-        const stateCode = facet.split('.')[1];
-        
-        if (forbiddenPhysicalStates.includes(stateCode)) {
-            warnings.push({
-                rule: 'BR13',
-                message: 'The F03 physical state facet reported creates a new derivative nature and therefore cannot be applied to raw primary commodity.',
-                severity: 'HIGH'
-            });
-        }
+    if (!this.hierarchyHelper.isRawCommodity(baseTerm)) return;
+
+    const hasF03 = explicitFacets.some(f => f.startsWith('F03.'));
+    if (hasF03) {
+        warnings.push(this.createWarning('BR13', baseTerm.code));
     }
 }
 ```
+
+**Examples:**
+- ❌ `A01AC#F03.A06JD` (Turmeric roots + Powder) — fires BR13
+- ❌ `A01DJ#F03.A06JD` (Apples + Powder) — fires BR13
+- ✅ `A0EZJ#F03.A06JD` — does NOT fire, base is a derivative (type `d`), not raw
 
 ### BR16: Process Detail Level
 

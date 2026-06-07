@@ -256,22 +256,20 @@ class BusinessRulesValidator {
 
     /**
      * BR13: Physical state creates derivatives
+     *
+     * ICT spec (data/warningMessages.txt:13): "if a physical state facet is added
+     * to a food rpc term" → HIGH warning. The rule is unconditional — ANY F03
+     * facet on a raw primary commodity creates a new derivative nature and is
+     * therefore forbidden. There is no allowlist; the previous implementation's
+     * hardcoded forbidden-list of 5 codes was placeholder data that never matched
+     * any real F03 code (they were F28 process codes).
      */
     async checkBR13(baseTerm, explicitFacets, warnings) {
         if (!this.hierarchyHelper.isRawCommodity(baseTerm)) return;
 
-        // List of physical states that create derivatives
-        const forbiddenPhysicalStates = [
-            'A0C0D', 'A0C0E', 'A0C0F', 'A0C0G', 'A0C0H'
-            // Add more based on actual data
-        ];
-
-        for (const facet of explicitFacets.filter(f => f.startsWith('F03.'))) {
-            const stateCode = facet.split('.')[1];
-            
-            if (forbiddenPhysicalStates.includes(stateCode)) {
-                warnings.push(this.createWarning('BR13', baseTerm.code));
-            }
+        const hasF03 = explicitFacets.some(f => f.startsWith('F03.'));
+        if (hasF03) {
+            warnings.push(this.createWarning('BR13', baseTerm.code));
         }
     }
 

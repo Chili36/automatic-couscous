@@ -207,8 +207,9 @@ Common facet prefixes:
 **Rule**: F03 (physical state) facets cannot be applied to raw commodities as they create derivatives.
 
 **Example**:
-- ❌ `A0EZJ#F03.A0BZS` (Raw apple + frozen state)
-- ✅ Use frozen apple derivative instead
+- ❌ `A01AC#F03.A06JD` (Turmeric roots + Powder physical state)
+- ❌ `A01DJ#F03.A06JD` (Apples + Powder physical state)
+- ✅ Use the existing dried/powdered derivative term instead
 
 **Purpose**: Physical state changes create new products (derivatives).
 
@@ -445,7 +446,7 @@ Common facet prefixes:
 - `A0BXM#F01.A0F6E` - With source (Cow's milk)
 
 ### Invalid Codes
-- `A0EZJ#F03.A0BZS` - BR13: Physical state on raw commodity
+- `A01AC#F03.A06JD` - BR13: Physical state (Powder) on raw commodity (Turmeric roots)
 - `A000J#F01.A0F6E` - BR03: Source on composite
 - `A03NC#F04.A033J` - BR12: Ingredient on derivative (warning)
 - `DEPRECATED_TERM` - BR20: Deprecated term
