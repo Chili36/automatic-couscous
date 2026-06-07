@@ -364,8 +364,8 @@ To add more validation rules:
 
 - **Version**: 17.1
 - **Status**: PUBLISHED MINOR
-- **Terms**: 31,680
-- **Last Update**: 2025-10-02 (see release notes in database)
+- **Terms**: 31,690
+- **Last Update**: 2026-04-28 (see release notes in database)
 
 ## Contributing
 
