@@ -256,21 +256,40 @@ class BusinessRulesValidator {
 
     /**
      * BR13: Physical state creates derivatives
+     *
+     * ICT logic (extracted from data/app.jar → business_rules/TermRules.class
+     * method `isForbiddenPhysicalState`): a raw primary commodity term flags
+     * BR13 only when its F03 facet is in a specific 7-code forbidden list.
+     *
+     * The one-line description in data/warningMessages.txt:13 ("if a physical
+     * state facet is added to a food rpc term") oversimplifies — the actual
+     * ICT gate is `isForbiddenPhysicalState`, not "any F03". All 7 codes are
+     * forms of physical disintegration (powder/paste/puree variants) that
+     * destroy the raw structure; other F03 codes (e.g. solid/liquid that just
+     * describe form without disintegration) are permitted.
+     *
+     * Provenance of the list: bytecode string-table inspection of
+     * TermRules.class — see also docs/BUSINESS_RULES_IMPLEMENTATION_GUIDE.md.
      */
+    static BR13_FORBIDDEN_F03_CODES = new Set([
+        'A06JD', // Powder
+        'A06JE', // coarse paste / minced
+        'A06JF', // Paste
+        'A06JG', // Puree-type
+        'A07Y2', // Fine powder
+        'A07Y3', // Coarse powder
+        'A07Y4', // Fine paste
+    ]);
+
     async checkBR13(baseTerm, explicitFacets, warnings) {
         if (!this.hierarchyHelper.isRawCommodity(baseTerm)) return;
 
-        // List of physical states that create derivatives
-        const forbiddenPhysicalStates = [
-            'A0C0D', 'A0C0E', 'A0C0F', 'A0C0G', 'A0C0H'
-            // Add more based on actual data
-        ];
-
-        for (const facet of explicitFacets.filter(f => f.startsWith('F03.'))) {
-            const stateCode = facet.split('.')[1];
-            
-            if (forbiddenPhysicalStates.includes(stateCode)) {
+        for (const facet of explicitFacets) {
+            if (!facet.startsWith('F03.')) continue;
+            const descriptor = facet.split('.')[1];
+            if (BusinessRulesValidator.BR13_FORBIDDEN_F03_CODES.has(descriptor)) {
                 warnings.push(this.createWarning('BR13', baseTerm.code));
+                return; // one warning per code
             }
         }
     }

@@ -285,33 +285,72 @@ async checkBR12(baseTerm, explicitFacets, warnings) {
 
 ### BR13: Physical State Creates Derivatives
 
-**Logic:**
-- F03 physical state cannot be applied to raw commodities
-- Exception: Some physical states don't create derivatives
+**ICT logic** (from `business_rules/TermRules.class` method `isForbiddenPhysicalState`, extracted from `data/app.jar`):
+
+Raw primary commodity + F03 facet → BR13 only when the F03 descriptor is one of seven specific disintegration codes. The wider one-line spec in `data/warningMessages.txt:13` ("if a physical state facet is added to a food rpc term") is a simplification — the actual implementation gates on `isForbiddenPhysicalState`, not on "any F03".
+
+The seven forbidden F03 codes (all are physical-disintegration descriptors):
+
+| Code | Name | F03 hierarchy |
+|---|---|---|
+| A06JD | Powder | state |
+| A06JE | coarse paste / minced | state |
+| A06JF | Paste | state |
+| A06JG | Puree-type | state |
+| A07Y2 | Fine powder | state |
+| A07Y3 | Coarse powder | state |
+| A07Y4 | Fine paste | state |
+
+All seven were confirmed as F03/state-hierarchy descriptors via the MTX database (`SELECT hierarchy_code FROM term_hierarchies WHERE term_code IN (...)`).
 
 **Implementation:**
 ```javascript
+static BR13_FORBIDDEN_F03_CODES = new Set([
+    'A06JD', // Powder
+    'A06JE', // coarse paste / minced
+    'A06JF', // Paste
+    'A06JG', // Puree-type
+    'A07Y2', // Fine powder
+    'A07Y3', // Coarse powder
+    'A07Y4', // Fine paste
+]);
+
 async checkBR13(baseTerm, explicitFacets, warnings) {
-    if (baseTerm.type !== 'r') return;
-    
-    const forbiddenPhysicalStates = [
-        // List of physical states that create derivatives
-        'A0C0D', 'A0C0E', 'A0C0F' // Examples: dried, frozen, etc.
-    ];
-    
-    for (const facet of explicitFacets.filter(f => f.startsWith('F03.'))) {
-        const stateCode = facet.split('.')[1];
-        
-        if (forbiddenPhysicalStates.includes(stateCode)) {
-            warnings.push({
-                rule: 'BR13',
-                message: 'The F03 physical state facet reported creates a new derivative nature and therefore cannot be applied to raw primary commodity.',
-                severity: 'HIGH'
-            });
+    if (!this.hierarchyHelper.isRawCommodity(baseTerm)) return;
+
+    for (const facet of explicitFacets) {
+        if (!facet.startsWith('F03.')) continue;
+        const descriptor = facet.split('.')[1];
+        if (BusinessRulesValidator.BR13_FORBIDDEN_F03_CODES.has(descriptor)) {
+            warnings.push(this.createWarning('BR13', baseTerm.code));
+            return;
         }
     }
 }
 ```
+
+**Examples:**
+- ❌ `A01AC#F03.A06JD` (Turmeric roots + Powder) — BR13 fires
+- ❌ `A01DJ#F03.A06JD` (Apples + Powder) — BR13 fires
+- ✅ `A01AC#F03.A0C2M` (Turmeric roots + Solid) — does NOT fire (Solid not in forbidden list)
+- ✅ `A0EZJ#F03.A06JD` — does NOT fire (base is a derivative, not raw)
+
+**How to re-verify or extend the list:**
+
+```bash
+# Extract the F03 codes ICT considers forbidden
+unzip -p data/app.jar business_rules/TermRules.class \
+  | LC_ALL=C strings -n 4 \
+  | grep -E '^A0[0-9A-Z]{3}$' | sort -u
+
+# Look up each code's facet group in the catalogue
+sqlite3 data/mtx.db "SELECT term_code, extended_name FROM terms WHERE term_code IN (...)"
+
+# Cross-check which belong to F03 (hierarchy_code = 'state') vs F28 ('process')
+sqlite3 data/mtx.db "SELECT term_code, GROUP_CONCAT(hierarchy_code, ',') FROM term_hierarchies WHERE term_code IN (...) GROUP BY term_code"
+```
+
+The 12-code raw extraction split cleanly: 7 belong to `state` (F03) — the BR13 list — and 5 belong to `process` (F28) — used by `isConcOrPowdTerm` for BR28 reconstitution checks, not BR13.
 
 ### BR16: Process Detail Level
 

@@ -203,14 +203,32 @@ Common facet prefixes:
 ### BR13: Physical State Creates Derivatives
 **Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Raw commodity terms (type `r`)
+**Source**: Extracted directly from ICT (`business_rules/TermRules.class` method `isForbiddenPhysicalState` in `data/app.jar`). The one-line description in `data/warningMessages.txt:13` ("if a physical state facet is added to a food rpc term") is a simplification — ICT actually gates on a specific 7-code forbidden list, not all F03.
 
-**Rule**: F03 (physical state) facets cannot be applied to raw commodities as they create derivatives.
+**Rule**: A raw primary commodity term flags BR13 only when its F03 facet is one of seven physical-disintegration descriptors:
 
-**Example**:
-- ❌ `A0EZJ#F03.A0BZS` (Raw apple + frozen state)
-- ✅ Use frozen apple derivative instead
+| Code | Name |
+|---|---|
+| A06JD | Powder |
+| A06JE | coarse paste / minced |
+| A06JF | Paste |
+| A06JG | Puree-type |
+| A07Y2 | Fine powder |
+| A07Y3 | Coarse powder |
+| A07Y4 | Fine paste |
 
-**Purpose**: Physical state changes create new products (derivatives).
+All seven describe forms in which the raw structure has been destroyed. Other F03 descriptors (e.g. `A0C2M` Solid, `A0C3M` Liquid) describe form without disintegration and are **permitted** on raw commodities — they do not fire BR13.
+
+**Examples**:
+- ❌ `A01AC#F03.A06JD` (Turmeric roots + Powder) → BR13 fires
+- ❌ `A01DJ#F03.A06JD` (Apples + Powder) → BR13 fires
+- ✅ `A01AC#F03.A0C2M` (Turmeric roots + Solid) → BR13 does NOT fire (Solid is permitted)
+- ✅ `A0EZJ#F03.A06JD` (Derivative base + Powder) → BR13 does NOT fire (base is not raw)
+- ✅ Use the existing dried/powdered derivative term instead of constructing the forbidden codes
+
+**Purpose**: Disintegration (grinding to powder/paste/puree) creates a new derivative product; other physical-state descriptions don't.
+
+**Implementation**: `server/validators/business-rules-validator.js:checkBR13`. The forbidden-code list is defined as a static `Set` named `BR13_FORBIDDEN_F03_CODES` on the validator class.
 
 ---
 
@@ -445,7 +463,7 @@ Common facet prefixes:
 - `A0BXM#F01.A0F6E` - With source (Cow's milk)
 
 ### Invalid Codes
-- `A0EZJ#F03.A0BZS` - BR13: Physical state on raw commodity
+- `A01AC#F03.A06JD` - BR13: Physical state (Powder) on raw commodity (Turmeric roots)
 - `A000J#F01.A0F6E` - BR03: Source on composite
 - `A03NC#F04.A033J` - BR12: Ingredient on derivative (warning)
 - `DEPRECATED_TERM` - BR20: Deprecated term
