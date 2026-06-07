@@ -371,7 +371,8 @@ class BusinessRulesValidator {
         for (const facet of explicitFacets.filter(f => f.startsWith('F28.'))) {
             const processCode = facet.split('.')[1];
 
-            if (forbiddenForTerm.includes(processCode)) {
+            const matchedRule = forbiddenForTerm.find(r => r.forbiddenProcessCode === processCode);
+            if (matchedRule) {
                 // Get process term details for better error message
                 const processTermRow = await this.db.get(
                     'SELECT extended_name FROM terms WHERE term_code = ?',
@@ -380,10 +381,21 @@ class BusinessRulesValidator {
                 const processName = processTermRow ? processTermRow.extended_name : processCode;
                 const baseTermName = baseTerm.extended_name || baseTerm.name || baseTerm.code;
 
-                // Create a more specific warning message
+                const isExtension = matchedRule.source === 'extension';
+                const ruleLabel = isExtension ? 'BR19+' : 'BR19';
+                const sourceTag = isExtension
+                    ? ` [extension: ${matchedRule.rationale ? matchedRule.rationale.split('.')[0] : 'local addition'}]`
+                    : '';
+
                 const specificWarning = this.createWarning('BR19', processCode);
-                specificWarning.message = `BR19> Process ${facet} (${processName}) creates a derivative from raw commodity ${baseTerm.code} (${baseTermName}) and is forbidden. Start from the existing derivative base term instead.`;
+                specificWarning.rule = ruleLabel;
+                specificWarning.message = `${ruleLabel}> Process ${facet} (${processName}) creates a derivative from raw commodity ${baseTerm.code} (${baseTermName}) and is forbidden. Start from the existing derivative base term instead.${sourceTag}`;
                 specificWarning.facet = facet;
+                specificWarning.source = matchedRule.source || 'efsa';
+                if (isExtension) {
+                    specificWarning.extensionRationale = matchedRule.rationale;
+                    specificWarning.extensionAdded = matchedRule.added;
+                }
                 warnings.push(specificWarning);
             }
         }
@@ -556,15 +568,24 @@ class BusinessRulesValidator {
         const ancestors = await this.hierarchyHelper.getAncestors(termCode, 'report');
         ancestors.push(termCode); // Include the term itself
 
-        // Check forbidden processes for each ancestor
+        // Check forbidden processes for each ancestor. Returns the full rule
+        // objects (not just process codes) so BR19 can surface whether the
+        // firing came from EFSA's data file or our extension.
         for (const ancestorCode of ancestors) {
-            const processes = this.forbiddenProcesses
-                .filter(fp => fp.rootGroupCode === ancestorCode)
-                .map(fp => fp.forbiddenProcessCode);
-            forbidden.push(...processes);
+            const rules = this.forbiddenProcesses.filter(fp => fp.rootGroupCode === ancestorCode);
+            forbidden.push(...rules);
         }
 
-        return [...new Set(forbidden)]; // Remove duplicates
+        // De-dup by (root, process), preferring EFSA rows over extension rows
+        // so an extension row never overrides an existing official row.
+        const seen = new Map();
+        for (const r of forbidden) {
+            const key = `${r.rootGroupCode}|${r.forbiddenProcessCode}`;
+            if (!seen.has(key) || (seen.get(key).source === 'extension' && r.source !== 'extension')) {
+                seen.set(key, r);
+            }
+        }
+        return [...seen.values()];
     }
 
     /**
