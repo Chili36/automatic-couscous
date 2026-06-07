@@ -28,6 +28,54 @@ For validation purposes we group severities into four categories:
 
 > **Note**: BR02, BR09, and BR18 are placeholders that are currently not implemented and therefore have no severity classification.
 
+## BR → ICT Method Mapping
+
+The validator implements each rule against the EFSA ICT's compiled Java implementation in `data/app.jar` (class `business_rules.TermRules`). The table below maps each BR number to the ICT method that owns the check, plus a one-line summary of what that method does.
+
+| BR | ICT method | Behaviour |
+| --- | --- | --- |
+| BR01 | `sourceCommodityRawCheck` | Raw commodity F27 source-commodity specificity check |
+| BR02 | — | Empty placeholder |
+| BR03 | `sourceInCompositeCheck` | Composite base terms cannot use F01 source facets |
+| BR04 | `sourceCommodityInCompositeCheck` | Composite base terms cannot use F27 source-commodity facets |
+| BR05 | `sourceCommodityDerivativeCheck` | Derivative F27 source-commodity facets must refine an implicit source commodity |
+| BR06 | `sourceCommodityDerivativeCheck` | F01 source is allowed on derivatives only when one F27 source commodity is present |
+| BR07 | `sourceCommodityDerivativeCheck` | F01 source is blocked when derivative has multiple F27 source commodities |
+| BR08 | `isNotReportable` | Base terms not reportable in the reporting hierarchy are forbidden |
+| BR09 | — | Empty placeholder |
+| BR10 | `nonSpecificTermCheck` | Non-specific base terms are discouraged |
+| BR11 | `genericProcessedFacetCheck` | Generic Processed terms under F28 process are discouraged |
+| BR12 | `minorIngredientCheck` | F04 ingredient facets are limited to minor ingredients for derivative/raw commodity terms |
+| BR13 | `physicalStateRawCheck` (gated by `isForbiddenPhysicalState`) | Selected F03 physical states are forbidden on raw primary commodity terms — see BR13 details below for the 7-code list |
+| BR14 | content-provider / ICT-DCF-specific | Declared as ICT/DCF-only in warning message data |
+| BR15 | DCF-specific | Declared as DCF-only in warning message data |
+| BR16 | `checkIfExplicitLessDetailed` | Derivative explicit process ordCode cannot be less detailed than implicit process ordCode |
+| BR17 | `isFacet` | Facet terms cannot be selected as base terms |
+| BR18 | — | Empty placeholder |
+| BR19 | `checkFpForRawCommodity` | Raw commodity terms cannot take configured forbidden process facets from `BR_Data.csv` — see BR19 Extension Layer below for the additive `BR19+` mechanism |
+| BR20 | `isDeprecated` | Deprecated terms are forbidden |
+| BR21 | `isDismissed` | Dismissed terms are forbidden |
+| BR22 | `performWarningChecks` | Success/info message when no high warning is present |
+| BR23 | `hierarchyAsBasetermCheck` | Hierarchy terms as base terms are discouraged |
+| BR24 | `hierarchyAsBasetermCheck` | Hierarchy base terms outside exposure/reporting hierarchy are high warnings |
+| BR25 | single-cardinality facet check | More than one explicit facet in a single-cardinality facet category is forbidden |
+| BR26 | `mutuallyExclusiveCheck` | More than one process with the same ordCode is forbidden on derivative base terms — **the call to this method is commented out in the observed ICT source** (see Known Divergences below) |
+| BR27 | `decimalOrderCheck` | Decimal ordCode process combinations with the same integer part are blocked |
+| BR28 | `reconstitutionCheck` | Reconstitution/dilution process is blocked on concentrate, powder, or dehydrated terms |
+| BR29 | `performWarningChecks` parser | Invalid code structure, unknown base term, or unknown facet term |
+| BR30 | ICT-only facet category validation | Facet category code does not exist |
+| BR31 | ICT-only facet category validation | Facet term does not belong to the supplied facet category hierarchy |
+
+This mapping was extracted from `business_rules/TermRules.class` bytecode and `data/warningMessages.txt`, then cross-checked against an independent extraction. To re-derive it for a future ICT release: `unzip -p data/app.jar business_rules/TermRules.class | strings -n 4 | grep -E '<methodName>'` against each BR number.
+
+## Known Divergences from ICT
+
+This validator aims to be faithful to ICT, but a few rules deserve specific notes:
+
+- **BR13 — list embedded in Java, not in `warningMessages.txt`.** ICT's `isForbiddenPhysicalState` references a 7-code allowlist (Powder, coarse paste/minced, Paste, Puree-type, Fine powder, Coarse powder, Fine paste). The one-line spec in `warningMessages.txt:13` ("if a physical state facet is added to a food rpc term") oversimplifies; our implementation uses the exact 7 codes from the Java source. See BR13 detailed section below.
+- **BR19 — data file frozen.** EFSA's `BR_Data.csv` was last updated on 2020-05-20. It covers 30 root groups; many MTX root groups added since then have no forbidden-process rows, so BR19 cannot fire for them even when domain semantics suggest it should (e.g. Turmeric+Drying). The validator faithfully reproduces ICT behaviour and additionally ships an opt-out additive extension layer — see BR19 Extension Layer below.
+- **BR26 — practically never fires.** ICT's `mutuallyExclusiveCheck` call appears to be commented out in the observed `TermRules` source. Our implementation has an additional architectural gap: `getProcessOrdinalCode` walks the **report** hierarchy to find a root group, but BR26 only applies to **derivative** base terms — which don't live in the report hierarchy. Result: every process gets ord-code 0, the same-ord-code grouping is empty, and BR26 doesn't fire. This matches ICT behaviour in practice but the underlying cause differs. Fixing this properly requires walking a hierarchy that derivatives actually inhabit (likely `master`) — out of scope for this PR; tracked separately.
+
 ## BR19 Extension Layer (`BR19+`)
 
 ICT's BR19 check ("forbidden processes on raw commodities") reads from `data/BR_Data.csv`, a CSV maintained in `openefsa/catalogue-browser`. That file was last updated on **2020-05-20** (commit `7bc147fb`), covers 30 root groups, and has not been refreshed as MTX has grown over subsequent releases (we're currently on MTX 17.1). Many root groups added since are not represented, so BR19 cannot fire on them even when the same semantic clearly applies — for example, drying a raw commodity to produce a derivative.
@@ -239,14 +287,32 @@ Common facet prefixes:
 ### BR13: Physical State Creates Derivatives
 **Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Raw commodity terms (type `r`)
+**Source**: Extracted directly from ICT (`business_rules/TermRules.class` method `isForbiddenPhysicalState` in `data/app.jar`). The one-line description in `data/warningMessages.txt:13` ("if a physical state facet is added to a food rpc term") is a simplification — ICT actually gates on a specific 7-code forbidden list, not all F03.
 
-**Rule**: F03 (physical state) facets cannot be applied to raw commodities as they create derivatives.
+**Rule**: A raw primary commodity term flags BR13 only when its F03 facet is one of seven physical-disintegration descriptors:
 
-**Example**:
-- ❌ `A0EZJ#F03.A0BZS` (Raw apple + frozen state)
-- ✅ Use frozen apple derivative instead
+| Code | Name |
+|---|---|
+| A06JD | Powder |
+| A06JE | coarse paste / minced |
+| A06JF | Paste |
+| A06JG | Puree-type |
+| A07Y2 | Fine powder |
+| A07Y3 | Coarse powder |
+| A07Y4 | Fine paste |
 
-**Purpose**: Physical state changes create new products (derivatives).
+All seven describe forms in which the raw structure has been destroyed. Other F03 descriptors (e.g. `A0C2M` Solid, `A0C3M` Liquid) describe form without disintegration and are **permitted** on raw commodities — they do not fire BR13.
+
+**Examples**:
+- ❌ `A01AC#F03.A06JD` (Turmeric roots + Powder) → BR13 fires
+- ❌ `A01DJ#F03.A06JD` (Apples + Powder) → BR13 fires
+- ✅ `A01AC#F03.A0C2M` (Turmeric roots + Solid) → BR13 does NOT fire (Solid is permitted)
+- ✅ `A0EZJ#F03.A06JD` (Derivative base + Powder) → BR13 does NOT fire (base is not raw)
+- ✅ Use the existing dried/powdered derivative term instead of constructing the forbidden codes
+
+**Purpose**: Disintegration (grinding to powder/paste/puree) creates a new derivative product; other physical-state descriptions don't.
+
+**Implementation**: `server/validators/business-rules-validator.js:checkBR13`. The forbidden-code list is defined as a static `Set` named `BR13_FORBIDDEN_F03_CODES` on the validator class.
 
 ---
 
@@ -481,7 +547,7 @@ Common facet prefixes:
 - `A0BXM#F01.A0F6E` - With source (Cow's milk)
 
 ### Invalid Codes
-- `A0EZJ#F03.A0BZS` - BR13: Physical state on raw commodity
+- `A01AC#F03.A06JD` - BR13: Physical state (Powder) on raw commodity (Turmeric roots)
 - `A000J#F01.A0F6E` - BR03: Source on composite
 - `A03NC#F04.A033J` - BR12: Ingredient on derivative (warning)
 - `DEPRECATED_TERM` - BR20: Deprecated term
