@@ -28,6 +28,42 @@ For validation purposes we group severities into four categories:
 
 > **Note**: BR02, BR09, and BR18 are placeholders that are currently not implemented and therefore have no severity classification.
 
+## BR19 Extension Layer (`BR19+`)
+
+ICT's BR19 check ("forbidden processes on raw commodities") reads from `data/BR_Data.csv`, a CSV maintained in `openefsa/catalogue-browser`. That file was last updated on **2020-05-20** (commit `7bc147fb`), covers 30 root groups, and has not been refreshed as MTX has grown over subsequent releases (we're currently on MTX 17.1). Many root groups added since are not represented, so BR19 cannot fire on them even when the same semantic clearly applies — for example, drying a raw commodity to produce a derivative.
+
+A concrete instance: drying turmeric (`A01AC#F28.A07KG`). Drying turmeric roots produces dried/powdered turmeric, a derivative. EFSA's BR_Data.csv forbids `A07KG` (Drying) on `A07XJ` (Garden vegetables) for exactly this reason, but the file has no row for `A0CGZ` (Turmeric roots and similar). Stock ICT — and our validator running in strict ICT-parity mode — does not flag this code. Stock behaviour is faithful but practically misses a case that domain semantics clearly cover.
+
+To bridge this without modifying EFSA's data file, this repository ships an additive companion file: **`data/BR_Data.extension.csv`**. It uses the same five columns as the official file plus two transparency columns:
+
+| Column | From EFSA file | Added in extension |
+| --- | :---: | :---: |
+| `ROOT_GROUP_CODE` | ✓ | ✓ |
+| `ROOT_GROUP_LABEL` | ✓ | ✓ |
+| `FORBIDDEN_PROCS` | ✓ | ✓ |
+| `FORBIDDEN_PROCS_LABELS` | ✓ | ✓ |
+| `ORDINAL_CODE` | ✓ | ✓ |
+| `RATIONALE` | | ✓ — why this row was added, with a parallel from EFSA's existing rows |
+| `ADDED` | | ✓ — date the row was added |
+
+### Behaviour
+
+- The official `data/BR_Data.csv` is loaded first, byte-for-byte as EFSA ships it, and is never modified.
+- `data/BR_Data.extension.csv` is loaded after, and its rows are appended to the in-memory rule list.
+- Extension rows are tagged `source: 'extension'`; official rows are tagged `source: 'efsa'`.
+- When a BR19 firing comes from an extension row, the rule label in the warning is **`BR19+`** (not plain `BR19`) and the warning carries the rationale and date as fields. This makes it transparent in API responses, exports, and UI which firings came from the official ICT data and which from the local extension.
+- An EFSA row always wins over an extension row covering the same `(root group, process)` pair — the official data is the source of truth where it exists.
+
+### Strict ICT parity
+
+Set the environment variable `STRICT_ICT_PARITY=1` to disable the extension entirely. The validator then behaves exactly as if only the EFSA file existed — useful when you need to confirm a code's behaviour against stock ICT, or when comparing notes with someone who runs the official tool.
+
+### Adding a row
+
+Each row in `BR_Data.extension.csv` requires a non-empty `RATIONALE` and `ADDED` date. The expectation is that every addition has a clear parallel to an existing EFSA row — "EFSA forbids X on root group Y; the new row Z follows the same pattern because…" — so reviewers can sanity-check the semantic. Speculative additions without a parallel are not the goal; this file is meant to cover gaps that look like data freshness, not policy disagreements.
+
+If you've added rows you believe should be in the upstream EFSA file, please consider also opening a PR or issue against [openefsa/catalogue-browser](https://github.com/openefsa/catalogue-browser) so other ICT users benefit too. Local extension is a workaround; upstream is the long-term home.
+
 ## Term Types
 
 Understanding term types is crucial for validation:

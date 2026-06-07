@@ -9,11 +9,36 @@ class DataLoader {
     }
 
     /**
-     * Load forbidden processes from BR_Data.csv
+     * Load forbidden processes from BR_Data.csv.
+     *
+     * Reads EFSA's canonical BR_Data.csv first (faithful to ICT), then
+     * additively concatenates rows from BR_Data.extension.csv if it exists.
+     * Extension rows carry `source: 'extension'` so consumers (and the BR19
+     * warning generator) can surface that a particular firing came from our
+     * extension rather than from EFSA's data file.
+     *
+     * Set the env var STRICT_ICT_PARITY=1 to skip the extension entirely and
+     * behave exactly like the upstream ICT tool.
+     *
+     * EFSA's BR_Data.csv was last updated 2020-05-20 on
+     * openefsa/catalogue-browser. The extension exists to add rows for
+     * root groups added to MTX after that date that are not yet represented
+     * in the official data file. See BUSINESS-RULES.md for the framing and
+     * data/BR_Data.extension.csv for the rationale on each added row.
      */
     async loadForbiddenProcesses() {
-        const filePath = path.join(this.dataPath, 'BR_Data.csv');
-        
+        const official = await this._loadCsvAsRules(path.join(this.dataPath, 'BR_Data.csv'), 'BR_Data.csv', 'efsa');
+
+        if (process.env.STRICT_ICT_PARITY === '1') {
+            return official;
+        }
+
+        const extension = await this._loadCsvAsRules(path.join(this.dataPath, 'BR_Data.extension.csv'), 'BR_Data.extension.csv', 'extension', { silentIfMissing: true });
+
+        return official.concat(extension);
+    }
+
+    async _loadCsvAsRules(filePath, label, source, opts = {}) {
         try {
             const fileContent = await fs.readFile(filePath, 'utf-8');
             const records = csvParse.parse(fileContent, {
@@ -27,10 +52,14 @@ class DataLoader {
                 rootGroupLabel: record.ROOT_GROUP_LABEL,
                 forbiddenProcessCode: record.FORBIDDEN_PROCS,
                 forbiddenProcessLabel: record.FORBIDDEN_PROCS_LABELS,
-                ordinalCode: parseFloat(record.ORDINAL_CODE) || 0
+                ordinalCode: parseFloat(record.ORDINAL_CODE) || 0,
+                source,
+                rationale: record.RATIONALE || null,
+                added: record.ADDED || null,
             }));
         } catch (error) {
-            console.error('Error loading BR_Data.csv:', error);
+            if (opts.silentIfMissing && error.code === 'ENOENT') return [];
+            console.error(`Error loading ${label}:`, error);
             return [];
         }
     }
