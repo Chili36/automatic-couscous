@@ -26,8 +26,36 @@ Example: `A01DJ#F28.A07GH$F01.A05YG` = "Apples, poached, from apple plant"
 - 💻 **Web interface** for interactive validation
 - 📄 **CSV/Excel export** for validation results
 - ⚖️ **Soft rule awareness** that separates critical issues from informational warnings
-- 🗄️ **SQLite database** with 31,680 official terms
+- 🗄️ **SQLite database** with 31,690 official terms
 - 📋 **All 31 business rules** (BR01-BR31) from the original ICT
+
+## Recent updates
+
+### MTX 17.1 catalogue (2026-06-07)
+
+EFSA published MTX 17.1 as a PUBLISHED MINOR release on 2026-04-28. The validator's SQLite database, UI label, and metadata are now on 17.1 (31,690 terms; +410 terms tagged for this version). Validation behaviour is unchanged; this is a data refresh against the official catalogue.
+
+### BR13 corrected to use ICT's exact 7-code list
+
+BR13 ("physical state on raw commodity") previously used a hardcoded 5-code list of placeholder data (`A0C0D` … `A0C0H`) that — on inspection — turned out to be F28 process codes, not F03 physical-state codes at all. The check effectively never fired against any real F03 facet, so domain-obvious cases like turmeric+powder slipped through.
+
+The current implementation uses the exact 7-code list extracted from ICT's `business_rules/TermRules.class` method `isForbiddenPhysicalState`: `A06JD` (Powder), `A06JE` (coarse paste / minced), `A06JF` (Paste), `A06JG` (Puree-type), `A07Y2` (Fine powder), `A07Y3` (Coarse powder), `A07Y4` (Fine paste). All seven describe forms of physical disintegration; other F03 descriptors (Solid, Liquid, Whole/unsplit, etc.) describe form without disintegration and remain permitted on raw commodities, matching stock ICT exactly.
+
+See `BUSINESS-RULES.md` § BR13 for the full list and rationale.
+
+### BR19 extension layer for groups EFSA hasn't yet updated
+
+ICT's BR19 ("forbidden processes on raw commodities") reads from `data/BR_Data.csv` — a data file in `openefsa/catalogue-browser` that was last updated on 2020-05-20 and covers 30 root groups. MTX has gone through several releases since (we're on 17.1), and many root groups added in that time aren't yet represented. A concrete case: drying turmeric (`A01AC#F28.A07KG`) produces a derivative, but A0CGZ (Turmeric roots and similar) has no row in BR_Data.csv, so stock ICT cannot flag it.
+
+The validator now ships an additive companion file `data/BR_Data.extension.csv` for these gaps. Extension rows use the same format as the EFSA file plus two transparency columns (`RATIONALE` and `ADDED`) so every addition documents why it's there with a parallel to an existing EFSA row. Firings from extension rows use the rule label **`BR19+`** so it's transparent in API responses, exports, and the UI which warnings came from the official ICT data and which from the local extension. EFSA rows always win over extension rows on the same `(root group, process)` pair.
+
+Set `STRICT_ICT_PARITY=1` in the environment to disable the extension entirely and behave exactly like stock ICT — useful when you need to confirm behaviour against the official tool.
+
+Contributions back to `openefsa/catalogue-browser` are welcomed: local extension is a workaround, upstream is the long-term home for these rules. See `BUSINESS-RULES.md` § BR19 Extension Layer for the full description, the schema, and how to add new rows.
+
+### BR → ICT method mapping documented
+
+`BUSINESS-RULES.md` now includes a per-rule table mapping each BR number to the ICT Java method that owns the check (e.g. BR19 → `checkFpForRawCommodity`), plus a "Known Divergences" section calling out three rules where the faithful-to-ICT implementation has subtle gaps worth being explicit about (BR13's hidden 7-code subset, BR19's stale data, BR26's commented-out check in observed ICT source). This gives future audits a single reference point.
 
 ## Quick Start
 
