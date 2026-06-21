@@ -131,7 +131,20 @@ class FoodEx2Service {
                 params.push(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`, query, limit);
         }
 
-        return await this.db.all(sql, params);
+        const rows = await this.db.all(sql, params);
+
+        // Enrich rows that carry a code with their facet group membership so the
+        // UI can show it consistently with the single-term lookup. The 'facet'
+        // search type already returns its own shape and is left untouched.
+        if (searchType !== 'facet') {
+            for (const row of rows) {
+                if (row.code) {
+                    row.facetGroups = await this.getFacetGroupsForTerm(row.code);
+                }
+            }
+        }
+
+        return rows;
     }
 
     /**
@@ -155,14 +168,52 @@ class FoodEx2Service {
         const implicitFacets = term.implicit_facets ?
             await this.parseImplicitFacets(term.implicit_facets) : [];
 
+        // Determine which facet group(s) this term belongs to (for facet descriptors)
+        const facetGroups = await this.getFacetGroupsForTerm(code);
+
         const normalizedTerm = this.normalizeTermRecord(term);
 
         return {
             ...term,
             ...normalizedTerm,
             hierarchies,
-            implicitFacets
+            implicitFacets,
+            facetGroups
         };
+    }
+
+    /**
+     * Resolve the facet group(s) a term belongs to.
+     *
+     * A facet descriptor belongs to a facet group via its membership in that
+     * group's facet hierarchy (term_hierarchies). Each facet hierarchy maps 1:1
+     * to an Fxx attribute via attributes.catalogue_code = 'MTX.<hierarchy_code>'.
+     * A descriptor can belong to more than one facet group.
+     *
+     * @param {string} code - term code
+     * @returns {Promise<Array<{code:string,name:string,label:string,hierarchyCode:string,cardinality:string}>>}
+     */
+    async getFacetGroupsForTerm(code) {
+        const rows = await this.db.all(`
+            SELECT a.code            AS code,
+                   a.label           AS label,
+                   a.name            AS name,
+                   a.single_or_repeatable AS cardinality,
+                   th.hierarchy_code AS hierarchyCode
+            FROM term_hierarchies th
+            JOIN attributes a
+              ON a.catalogue_code = 'MTX.' || th.hierarchy_code
+            WHERE th.term_code = ?
+            ORDER BY a.attribute_order
+        `, [code]);
+
+        return rows.map(r => ({
+            code: r.code,
+            name: r.name,
+            label: r.label || r.name,
+            hierarchyCode: r.hierarchyCode,
+            cardinality: r.cardinality
+        }));
     }
 
     /**

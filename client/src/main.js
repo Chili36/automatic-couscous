@@ -390,6 +390,12 @@ function displaySearchResults(results) {
               <span>${escapeHtml(term.scopeNote)}</span>
             </div>
           ` : ''}
+          ${term.facetGroups && term.facetGroups.length > 0 ? `
+            <div class="info-row">
+              <span class="label">${term.type === 'f' ? 'Facet Group:' : 'Usable as facet:'}</span>
+              <span>${term.facetGroups.map(g => `<span class="facet-tag">${escapeHtml(g.code)} – ${escapeHtml(g.label)}</span>`).join(' ')}</span>
+            </div>
+          ` : ''}
           ${term.implicitFacets && term.implicitFacets.length > 0 ? `
             <div class="info-row">
               <span class="label">Implicit Facets:</span>
