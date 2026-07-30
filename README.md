@@ -18,7 +18,7 @@ Example: `A01DJ#F28.A07GH$F01.A05YG` = "Apples, poached, from apple plant"
 
 ## Features
 
-- ✅ **Full code validation** against MTX v17.1 catalogue
+- ✅ **Full code validation** against MTX v17.2 catalogue
 - 🔍 **Term search** with fuzzy matching
 - 📊 **Hierarchy navigation** for exploring food classifications
 - 🏷️ **Facet validation** with valid descriptor lookup
@@ -26,10 +26,14 @@ Example: `A01DJ#F28.A07GH$F01.A05YG` = "Apples, poached, from apple plant"
 - 💻 **Web interface** for interactive validation
 - 📄 **CSV/Excel export** for validation results
 - ⚖️ **Soft rule awareness** that separates critical issues from informational warnings
-- 🗄️ **SQLite database** with 31,690 official terms
+- 🗄️ **SQLite database** with 31,705 official terms
 - 📋 **All 31 business rules** (BR01-BR31) from the original ICT
 
 ## Recent updates
+
+### MTX 17.2 catalogue (2026-07-30)
+
+EFSA published MTX 17.2 as a PUBLISHED MINOR release on 2026-07-14. The validator's SQLite database, UI label, and metadata are now on 17.2 (31,705 terms; +15 net new terms, 310 terms tagged for this version). Validation behaviour is unchanged; this is a data refresh against the official catalogue.
 
 ### MTX 17.1 catalogue (2026-06-07)
 
@@ -45,7 +49,7 @@ See `BUSINESS-RULES.md` § BR13 for the full list and rationale.
 
 ### BR19 extension layer for groups EFSA hasn't yet updated
 
-ICT's BR19 ("forbidden processes on raw commodities") reads from `data/BR_Data.csv` — a data file in `openefsa/catalogue-browser` that was last updated on 2020-05-20 and covers 30 root groups. MTX has gone through several releases since (we're on 17.1), and many root groups added in that time aren't yet represented. A concrete case: drying turmeric (`A01AC#F28.A07KG`) produces a derivative, but A0CGZ (Turmeric roots and similar) has no row in BR_Data.csv, so stock ICT cannot flag it.
+ICT's BR19 ("forbidden processes on raw commodities") reads from `data/BR_Data.csv` — a data file in `openefsa/catalogue-browser` that was last updated on 2020-05-20 and covers 30 root groups. MTX has gone through several releases since (we're on 17.2), and many root groups added in that time aren't yet represented. A concrete case: drying turmeric (`A01AC#F28.A07KG`) produces a derivative, but A0CGZ (Turmeric roots and similar) has no row in BR_Data.csv, so stock ICT cannot flag it.
 
 The validator now ships an additive companion file `data/BR_Data.extension.csv` for these gaps. Extension rows use the same format as the EFSA file plus two transparency columns (`RATIONALE` and `ADDED`) so every addition documents why it's there with a parallel to an existing EFSA row. Firings from extension rows use the rule label **`BR19+`** so it's transparent in API responses, exports, and the UI which warnings came from the official ICT data and which from the local extension. EFSA rows always win over extension rows on the same `(root group, process)` pair.
 
@@ -228,10 +232,10 @@ The validator implements all 31 business rules from the ICT, plus context-specif
 
 The validator uses an SQLite database (`data/mtx.db`) containing:
 
-- **31,690 terms** - All FoodEx2 food items (MTX v17.1)
+- **31,705 terms** - All FoodEx2 food items (MTX v17.2)
 - **39 hierarchies** - Classification structures
 - **51 attributes** - Facets for describing food characteristics
-- **88,817 relationships** - Term-hierarchy mappings
+- **88,880 relationships** - Term-hierarchy mappings
 
 ### Key Tables
 - `terms` - Main term definitions with version tracking
