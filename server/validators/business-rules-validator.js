@@ -563,9 +563,10 @@ class BusinessRulesValidator {
      */
     async getForbiddenProcesses(termCode) {
         const forbidden = [];
-        
-        // Get all ancestors of the term in reporting hierarchy
-        const ancestors = await this.hierarchyHelper.getAncestors(termCode, 'report');
+
+        // Get all ancestors of the term in reporting hierarchy. Copy before
+        // appending the term itself — getAncestors returns its cached array.
+        const ancestors = [...await this.hierarchyHelper.getAncestors(termCode, 'report')];
         ancestors.push(termCode); // Include the term itself
 
         // Check forbidden processes for each ancestor. Returns the full rule
@@ -590,18 +591,24 @@ class BusinessRulesValidator {
 
     /**
      * Helper: Get processes with ordinal codes
+     *
+     * BR_Data.csv keys ordinal codes per root group, so every process is
+     * resolved against the base term's single warn group. A process not
+     * listed under that root gets ord 0 (it does not participate in the
+     * BR26/BR27 grouping), matching ICT, where getForbiddenProcesses only
+     * returns the warn group's own rows.
      */
     async getProcessesWithOrdinalCodes(baseTerm, explicitFacets) {
         const processes = [];
+        const warnGroupCode = await this.getWarnGroupCode(baseTerm.code);
 
         // Get implicit processes
         const implicitFacets = this.hierarchyHelper.parseImplicitFacets(baseTerm.implicit_facets);
         for (const facet of implicitFacets.filter(f => f.startsWith('F28.'))) {
             const processCode = facet.split('.')[1];
-            const ordinalCode = await this.getProcessOrdinalCode(baseTerm.code, processCode);
             processes.push({
                 code: processCode,
-                ordinalCode: ordinalCode || 0,
+                ordinalCode: this.getOrdinalCodeInWarnGroup(warnGroupCode, processCode),
                 isImplicit: true
             });
         }
@@ -609,10 +616,9 @@ class BusinessRulesValidator {
         // Get explicit processes
         for (const facet of explicitFacets.filter(f => f.startsWith('F28.'))) {
             const processCode = facet.split('.')[1];
-            const ordinalCode = await this.getProcessOrdinalCode(baseTerm.code, processCode);
             processes.push({
                 code: processCode,
-                ordinalCode: ordinalCode || 0,
+                ordinalCode: this.getOrdinalCodeInWarnGroup(warnGroupCode, processCode),
                 isImplicit: false
             });
         }
@@ -621,23 +627,41 @@ class BusinessRulesValidator {
     }
 
     /**
-     * Helper: Get ordinal code for a process
+     * Helper: Resolve the base term's warn group — the term itself, or its
+     * closest reporting-hierarchy ancestor, whose code is a BR_Data.csv root
+     * group. Mirrors ICT's TermRules.getWarnGroup, which checks the term
+     * first and then walks up parent by parent. Only official EFSA rows
+     * define warn groups here: the BR19 extension layer must not shift ord
+     * code resolution for BR26/BR27.
      */
-    async getProcessOrdinalCode(termCode, processCode) {
-        // First check in forbidden processes data
-        const ancestors = await this.hierarchyHelper.getAncestors(termCode, 'report');
-        ancestors.push(termCode);
+    async getWarnGroupCode(termCode) {
+        const isWarnGroup = code => this.forbiddenProcesses.some(
+            fp => fp.rootGroupCode === code && fp.source !== 'extension'
+        );
 
+        if (isWarnGroup(termCode)) return termCode;
+
+        const ancestors = await this.hierarchyHelper.getAncestors(termCode, 'report');
         for (const ancestorCode of ancestors) {
-            const fp = this.forbiddenProcesses.find(
-                fp => fp.rootGroupCode === ancestorCode && 
-                      fp.forbiddenProcessCode === processCode
-            );
-            if (fp) return fp.ordinalCode;
+            if (isWarnGroup(ancestorCode)) return ancestorCode;
         }
 
-        // If not found, return default
-        return 0;
+        return null;
+    }
+
+    /**
+     * Helper: Get ordinal code for a process within one warn group
+     */
+    getOrdinalCodeInWarnGroup(warnGroupCode, processCode) {
+        if (!warnGroupCode) return 0;
+
+        const fp = this.forbiddenProcesses.find(
+            fp => fp.rootGroupCode === warnGroupCode &&
+                  fp.forbiddenProcessCode === processCode &&
+                  fp.source !== 'extension'
+        );
+
+        return fp ? fp.ordinalCode : 0;
     }
 
     /**
