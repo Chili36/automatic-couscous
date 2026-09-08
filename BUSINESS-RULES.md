@@ -78,7 +78,7 @@ This validator aims to be faithful to ICT, but a few rules deserve specific note
 
 ## BR19 Extension Layer (`BR19+`)
 
-ICT's BR19 check ("forbidden processes on raw commodities") reads from `data/BR_Data.csv`, a CSV maintained in `openefsa/catalogue-browser`. That file was last updated on **2020-05-20** (commit `7bc147fb`), covers 30 root groups, and has not been refreshed as MTX has grown over subsequent releases (we're currently on MTX 17.1). Many root groups added since are not represented, so BR19 cannot fire on them even when the same semantic clearly applies — for example, drying a raw commodity to produce a derivative.
+ICT's BR19 check ("forbidden processes on raw commodities") reads from `data/BR_Data.csv`, a CSV maintained in `openefsa/catalogue-browser`. That file was last updated on **2020-05-20** (commit `7bc147fb`), covers 30 root groups, and has not been refreshed as MTX has grown over subsequent releases (we're currently on MTX 17.2). Many root groups added since are not represented, so BR19 cannot fire on them even when the same semantic clearly applies — for example, drying a raw commodity to produce a derivative.
 
 A concrete instance: drying turmeric (`A01AC#F28.A07KG`). Drying turmeric roots produces dried/powdered turmeric, a derivative. EFSA's BR_Data.csv forbids `A07KG` (Drying) on `A07XJ` (Garden vegetables) for exactly this reason, but the file has no row for `A0CGZ` (Turmeric roots and similar). Stock ICT — and our validator running in strict ICT-parity mode — does not flag this code. Stock behaviour is faithful but practically misses a case that domain semantics clearly cover.
 
