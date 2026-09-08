@@ -80,9 +80,15 @@ graph TB
 foodex2-validator/
 ├── server/                      # Backend application
 │   ├── index.js                # Express server setup
-│   ├── database-validator.js   # Database-driven validation orchestrator
-│   ├── complete-business-rules.js  # All 31 business rules implementation
-│   ├── setup-complete-database.js  # Complete database setup with all tables
+│   ├── foodex2-service.js      # Service layer (validation, search, term details)
+│   ├── database.js             # SQLite connection wrapper
+│   ├── validators/             # Validation engine
+│   │   ├── foodex2-validator.js        # Validation orchestrator
+│   │   ├── business-rules-validator.js # All 31 business rules implementation
+│   │   ├── vba-validator.js            # VBA structural rules
+│   │   ├── soft-rules-validator.js     # Soft/info rules
+│   │   ├── hierarchy-helper.js         # Hierarchy traversal + caching
+│   │   └── data-loader.js              # Loads BR_Data.csv, warningMessages.txt
 │   ├── setup-database.js       # Initial database setup
 │   └── import-excel.js         # Excel to SQLite converter
 ├── client/                     # Frontend application
@@ -393,7 +399,7 @@ async validate(code) {
 
 ### Business Rules Engine
 
-The complete business rules implementation (`complete-business-rules.js`) includes:
+The complete business rules implementation (`server/validators/business-rules-validator.js`) includes:
 
 1. **Rule Organization**: Each rule is a separate async method
 2. **Database Integration**: Queries for hierarchy relationships, ordinal codes
@@ -476,7 +482,7 @@ flowchart LR
 
 1. **Prerequisites**: Node.js 14+, npm
 2. **Installation**: `./setup.sh`
-3. **Database Setup**: `node server/setup-complete-database.js` (imports all validation data)
+3. **Database**: `data/mtx.db` ships in the repository — no rebuild is needed for normal setup. To rebuild for a new catalogue release, first obtain the MTX Excel export for the target version (newer workbooks are not tracked in the repository; they come from EFSA's catalogue releases), then — only once the workbook is in hand — run `rm data/mtx.db && python3 scripts/import_mtx_to_sqlite.py path/to/MTX_<version>.xlsx`. The old file must be deleted because the importer INSERT-OR-REPLACEs into an existing database and never removes stale rows, which can leave terms and hierarchy memberships from the previous catalogue behind
 4. **Development**: `./start.sh` (includes hot reload)
 
 ### Production Deployment
@@ -540,17 +546,16 @@ POST /api/validate/batch
 ### Adding New Business Rules
 
 1. Add rule definition to `warningMessages.txt`
-2. Implement method in `complete-business-rules.js`
+2. Implement method in `server/validators/business-rules-validator.js`
 3. Add call in validator's rule execution sequence
 4. Test with known validation cases
 
 ### Updating MTX Catalogue
 
 1. Export new MTX Excel to same format
-2. Run Python import script or Node.js importer
-3. Update CSV files if business rules change
-4. Run `node server/setup-complete-database.js` to reimport all data
-5. Restart server
+2. With that export in hand, delete the old database and regenerate from it: `rm data/mtx.db && python3 scripts/import_mtx_to_sqlite.py path/to/MTX_<version>.xlsx` (the importer does not clear existing rows, and without an argument it looks for a hardcoded default workbook)
+3. Update CSV files if business rules change (the validator loads `data/BR_Data.csv` and `data/warningMessages.txt` directly at startup)
+4. Restart server
 
 ### Monitoring
 
