@@ -255,7 +255,7 @@ curl http://localhost:5001/api/database/info
 ```
 
 Response includes:
-- **Catalogue version** (e.g., MTX v17.1)
+- **Catalogue version** (e.g., MTX v17.2)
 - **Total terms** and hierarchies
 - **Version distribution** across all terms
 - **Recent updates** from release notes
@@ -290,7 +290,7 @@ The database is based on the official MTX catalogue from EFSA. To update:
    curl http://localhost:5001/api/database/info | jq '.catalogue'
    ```
 
-**Note**: The current database (v17.1) contains terms spanning versions 3.0 through 17.1, with most terms (66%) from version 8.9. Version 17.1 added 410 new/updated terms.
+**Note**: The current database (v17.2) contains terms spanning versions 3.0 through 17.2, with most terms (66%) from version 8.9. Version 17.2 tagged 310 new/updated terms (+15 net new).
 
 ## Project Structure
 
@@ -310,7 +310,7 @@ foodex2-validator/
 ├── public/               # Web interface static files
 ├── data/
 │   ├── mtx.db           # SQLite database
-│   ├── MTX_17.1.xlsx    # Source catalogue
+│   ├── MTX_17.2.xlsx    # Source catalogue
 │   ├── BR_Data.csv      # Forbidden processes
 │   ├── warningMessages.txt # Rule definitions
 │   └── warningColors.txt   # UI colors
@@ -394,10 +394,10 @@ To add more validation rules:
 
 ## MTX Catalogue Information
 
-- **Version**: 17.1
+- **Version**: 17.2
 - **Status**: PUBLISHED MINOR
-- **Terms**: 31,690
-- **Last Update**: 2026-04-28 (see release notes in database)
+- **Terms**: 31,705
+- **Last Update**: 2026-07-14 (see release notes in database)
 
 ## Contributing
 
