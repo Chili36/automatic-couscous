@@ -482,7 +482,7 @@ flowchart LR
 
 1. **Prerequisites**: Node.js 14+, npm
 2. **Installation**: `./setup.sh`
-3. **Database**: `data/mtx.db` ships in the repository; rebuild it from an MTX Excel export with `python3 scripts/import_mtx_to_sqlite.py` if needed
+3. **Database**: `data/mtx.db` ships in the repository. To rebuild it, delete the old file first and pass the workbook path explicitly: `rm data/mtx.db && python3 scripts/import_mtx_to_sqlite.py data/MTX_17.2.xlsx` — the importer INSERT-OR-REPLACEs into an existing database and never removes stale rows, so rebuilding over the old file can leave terms and hierarchy memberships from the previous catalogue behind
 4. **Development**: `./start.sh` (includes hot reload)
 
 ### Production Deployment
@@ -553,7 +553,7 @@ POST /api/validate/batch
 ### Updating MTX Catalogue
 
 1. Export new MTX Excel to same format
-2. Run `python3 scripts/import_mtx_to_sqlite.py` to regenerate `data/mtx.db`
+2. Delete the old database and regenerate it from that export: `rm data/mtx.db && python3 scripts/import_mtx_to_sqlite.py data/MTX_<version>.xlsx` (the importer does not clear existing rows, and without an argument it looks for a hardcoded default workbook)
 3. Update CSV files if business rules change (the validator loads `data/BR_Data.csv` and `data/warningMessages.txt` directly at startup)
 4. Restart server
 
