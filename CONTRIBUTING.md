@@ -362,7 +362,7 @@ Contributors are recognized in:
 ## Additional Resources
 
 - [EFSA FoodEx2 Documentation](https://www.efsa.europa.eu/en/data/data-standardisation/food-classification-and-description-efsas-foodex-2-system)
-- [Project Documentation](./docs/DOCUMENTATION.md)
+- [Project Documentation](./DOCUMENTATION.md)
 - [API Documentation](./docs/openapi.yaml)
 - [Developer Guide](./docs/DEVELOPER_GUIDE.md)
 
