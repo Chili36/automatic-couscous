@@ -467,6 +467,8 @@ class FoodEx2Validator {
         }
 
         const businessRules = Object.entries(this.warningMessages)
+            // BR26 is retained as reference logic, not an active rule.
+            .filter(([ruleId]) => ruleId !== 'BR26')
             .map(([ruleId, info]) => ({
                 id: ruleId,
                 trigger: info.trigger,

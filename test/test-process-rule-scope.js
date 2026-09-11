@@ -1,5 +1,4 @@
-const { test } = require('node:test');
-const assert = require('node:assert/strict');
+const assert = require('assert').strict;
 const BusinessRulesValidator = require('../server/validators/business-rules-validator');
 
 // Synthetic catalogue rows exercise real facet parsing and root-scoped lookup.
@@ -27,26 +26,37 @@ const cases = [
     { name: 'Empty process sets are allowed', implicit: [], explicit: [], expected: [] },
 ];
 
-for (const c of cases) {
-    test(c.name, async () => {
-        const rows = [];
-        function facets(ordinals) {
-            return ordinals.map(ordinalCode => {
-                const code = `synthetic${rows.length}`;
-                rows.push({ rootGroupCode: 'root', forbiddenProcessCode: code, ordinalCode });
-                return `F28.${code}`;
-            });
-        }
-        const implicitFacets = facets(c.implicit);
-        const explicitFacets = [...facets(c.explicit), ...(c.other || [])];
-        const validator = new BusinessRulesValidator(null, {}, rows);
-        // Only the ancestor database boundary is stubbed; root selection,
-        // ordinal resolution and both rule methods run unchanged.
-        validator.hierarchyHelper.getAncestors = async () => [];
-        const base = { code: 'root', type: c.type || 'd', implicit_facets: implicitFacets.join('$') };
-        const warnings = [];
-        await validator.checkBR26(base, explicitFacets, warnings);
-        await validator.checkBR27(base, explicitFacets, warnings);
-        assert.deepEqual(warnings.map(w => w.rule).sort(), c.expected);
-    });
+async function runCase(c) {
+    const rows = [];
+    function facets(ordinals) {
+        return ordinals.map(ordinalCode => {
+            const code = `synthetic${rows.length}`;
+            rows.push({ rootGroupCode: 'root', forbiddenProcessCode: code, ordinalCode });
+            return `F28.${code}`;
+        });
+    }
+    const implicitFacets = facets(c.implicit);
+    const explicitFacets = [...facets(c.explicit), ...(c.other || [])];
+    const validator = new BusinessRulesValidator(null, {}, rows);
+    // Only the ancestor database boundary is stubbed; root selection,
+    // ordinal resolution and both rule methods run unchanged.
+    validator.hierarchyHelper.getAncestors = async () => [];
+    const base = { code: 'root', type: c.type || 'd', implicit_facets: implicitFacets.join('$') };
+    const warnings = [];
+    await validator.checkBR26(base, explicitFacets, warnings);
+    await validator.checkBR27(base, explicitFacets, warnings);
+    assert.deepEqual(warnings.map(w => w.rule).sort(), c.expected, c.name);
 }
+
+async function main() {
+    for (const c of cases) {
+        await runCase(c);
+        console.log(`PASS: ${c.name}`);
+    }
+    console.log(`All ${cases.length} process-scope tests passed`);
+}
+
+main().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+});
