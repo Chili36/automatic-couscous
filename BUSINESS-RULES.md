@@ -74,7 +74,7 @@ This validator aims to be faithful to ICT, but a few rules deserve specific note
 
 - **BR13 — list embedded in Java, not in `warningMessages.txt`.** ICT's `isForbiddenPhysicalState` references a 7-code allowlist (Powder, coarse paste/minced, Paste, Puree-type, Fine powder, Coarse powder, Fine paste). The one-line spec in `warningMessages.txt:13` ("if a physical state facet is added to a food rpc term") oversimplifies; our implementation uses the exact 7 codes from the Java source. See BR13 detailed section below.
 - **BR19 — data file frozen.** EFSA's `BR_Data.csv` was last updated on 2020-05-20. It covers 30 root groups; many MTX root groups added since then have no forbidden-process rows, so BR19 cannot fire for them even when domain semantics suggest it should (e.g. Turmeric+Drying). The validator faithfully reproduces ICT behaviour and additionally ships an opt-out additive extension layer — see BR19 Extension Layer below.
-- **BR26 — implemented although disabled in ICT.** ICT's `mutuallyExclusiveCheck` call is commented out in the observed `TermRules` source, so stock ICT never fires it. Our validator implements it as specified. Ord codes are keyed per `BR_Data.csv` root group: the base term's single warn group is resolved first (the term itself, else its closest **report**-hierarchy ancestor, that appears as a `ROOT_GROUP_CODE`, matching ICT's `getWarnGroup`), and every process's ord code is read from that root's rows only. A process not listed under the warn group gets ord 0 and does not participate in the grouping. Derivative base terms do live in the report hierarchy (e.g. `A00ZB` → `A04MB` → `A07XJ`), so the walk resolves; an earlier note here claiming otherwise was wrong. See issue #23 for the cross-root resolution bug this design fixes.
+- **BR26 — inactive, matching the observed ICT call path.** Normal validation does not invoke BR26. The retained method is historical/reference logic, not a coding gate. Its direct method tests cover root-scoped ordinals and the explicit-F28 precondition without enabling the rule. BR27 remains active and requires distinct decimal values within the same integer family, with an explicit process in that family.
 
 ## BR19 Extension Layer (`BR19+`)
 
@@ -458,13 +458,15 @@ All seven describe forms in which the raw structure has been destroyed. Other F0
 
 ### BR26: Mutually Exclusive Processes
 **Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
-**Applies to**: Derivative terms (type `d`) with F28 processes
+**Runtime status**: Inactive in normal validation, matching the observed ICT call site. The following describes the retained method only.
+**Applies to**: Derivative terms (type `d`) with at least one explicit F28 process
 
-**Rule**: Processes with the same ordinal code cannot be used together.
+**Rule**: Once an explicit F28 is present, processes with the same non-zero ordinal code in the combined implicit and explicit set cannot be used together. Implicit-only sets are excluded. Resolve all ordinals within the base term's single BR_Data warn group.
 
-**Example**:
-- Flaking (ord=1) and Grinding (ord=1)
-- ❌ `A000L#F28.A07LG#F28.A07LA` (Both have ord=1)
+**Example** (synthetic ordinals within one warn group):
+- Implicit process with ord=1 plus explicit process with ord=1: BR26.
+- Two implicit processes with ord=1 and no explicit F28: no BR26.
+- Two processes with ord=0: no BR26.
 
 **Purpose**: Mutually exclusive processes represent alternatives.
 
@@ -474,12 +476,13 @@ All seven describe forms in which the raw structure has been destroyed. Other F0
 **Severity**: HIGH/HIGH _(Hard warning – treated as critical)_
 **Applies to**: Derivative terms (type `d`)
 
-**Rule**: Processes with decimal ordcodes (x.1, x.2) in the same integer group conflict.
+**Rule**: At least two distinct non-integer ordinal values (e.g. 1.1 and 1.2) in the same integer family conflict when that family includes an explicit process. Implicit-only families and equal decimal values alone do not trigger BR27.
 
-**Example**:
-- Juicing (ord=1.1) and Concentrating (ord=1.2)
-- ❌ Using both on same term
-- ✅ Use the more specific final process
+**Example** (synthetic ordinals within one warn group):
+- Implicit 1.1 plus explicit 1.2: BR27.
+- Implicit 1.1 plus explicit 1.1: BR26 only.
+- Implicit 1.1 and 1.2 plus explicit 2.1: no BR27, because the 1.x family is implicit-only.
+- Preserve stated processing information for recoding or review; this rule does not rank processes or authorise dropping one.
 
 **Purpose**: Decimal processes create different derivative paths.
 

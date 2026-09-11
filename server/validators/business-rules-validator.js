@@ -48,7 +48,8 @@ class BusinessRulesValidator {
         await this.checkBR23(baseTerm, warnings);
         await this.checkBR24(baseTerm, warnings);
         await this.checkBR25(explicitFacets, warnings);
-        await this.checkBR26(baseTerm, explicitFacets, warnings);
+        // BR26 is dormant in the observed ICT call path. Keep its method for
+        // reference, but do not enforce it in normal validation.
         await this.checkBR27(baseTerm, explicitFacets, warnings);
         await this.checkBR28(baseTerm, explicitFacets, warnings);
         // BR29, BR30, BR31 are handled in VBA validator
@@ -488,6 +489,9 @@ class BusinessRulesValidator {
      */
     async checkBR26(baseTerm, explicitFacets, warnings) {
         if (!this.hierarchyHelper.isDerivative(baseTerm)) return;
+        // EFSA mutuallyExclusiveCheck excludes implicit-only process sets.
+        // Once any explicit F28 is present, check the combined set below.
+        if (!explicitFacets.some(facet => facet.startsWith('F28.'))) return;
 
         const processes = await this.getProcessesWithOrdinalCodes(baseTerm, explicitFacets);
         const ordinalGroups = {};
@@ -529,12 +533,12 @@ class BusinessRulesValidator {
 
         // Check each group
         for (const [intPart, procs] of Object.entries(integerGroups)) {
-            const hasImplicit = procs.some(p => p.isImplicit);
             const hasExplicit = procs.some(p => !p.isImplicit);
-            
-            // Warn if we have both implicit and explicit, or multiple explicit
-            if ((hasImplicit && hasExplicit && procs.length > 1) || 
-                (!hasImplicit && procs.filter(p => !p.isImplicit).length > 1)) {
+            const distinctOrdinals = new Set(procs.map(p => p.ordinalCode));
+
+            // EFSA decimalOrderCheck requires distinct decimal values and an
+            // explicit process in this family. Equal values belong to BR26.
+            if (hasExplicit && distinctOrdinals.size > 1) {
                 const codes = procs.filter(p => !p.isImplicit).map(p => p.code);
                 warnings.push(this.createWarning('BR27', codes.join(' - ')));
             }

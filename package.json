@@ -7,7 +7,7 @@
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
     "setup-db": "node server/setup-database.js",
-    "test": "node test/test-validation.js && node test/test-br26.js",
+    "test": "node --test test/test-process-rule-scope.js && node test/test-validation.js && node test/test-br26.js",
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:start:json": "pm2 start pm2.json",
     "pm2:stop": "pm2 stop foodex2-backend foodex2-frontend",

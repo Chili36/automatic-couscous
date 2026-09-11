@@ -1,4 +1,4 @@
-// BR26 per-root ordinal code resolution tests (issue #23)
+// BR26 dormant-method root resolution and normal-runtime exclusion tests
 //
 // BR_Data.csv keys process ordinal codes per ROOT_GROUP_CODE. The validator
 // must resolve the base term's single warn group (the term itself, or its
@@ -43,7 +43,14 @@ const testCases = [
         name: 'Same-root collision below the root: A0C6N + A07LN share ord 1.1 ' +
               'under warn group A04MB',
         code: 'A00ZB#F28.A0C6N$F28.A07LN',
-        expectBR26: true
+        expectBR26: true,
+        expectBR27: false
+    },
+    {
+        name: 'Active BR27 still detects distinct decimals in the same root',
+        code: 'A00ZB#F28.A0C6N$F28.A07KF',
+        expectBR26: false,
+        expectBR27: true
     }
 ];
 
@@ -59,11 +66,23 @@ async function testBR26() {
             const result = await service.validateCode(testCase.code);
             const rules = (result.warnings || []).map(w => w.rule);
             const fired = rules.includes('BR26');
-            const passed = fired === testCase.expectBR26;
+            const br27Fired = rules.includes('BR27');
+            const { baseTermCode, facetString } = service.validator.parseFullCode(testCase.code);
+            const parsed = await service.validator.runVBAValidation(baseTermCode, facetString);
+            const directWarnings = [];
+            await service.validator.businessRulesValidator.checkBR26(
+                parsed.baseTerm, parsed.cleanedFacets || [], directWarnings
+            );
+            const directFired = directWarnings.some(w => w.rule === 'BR26');
+            const passed = !fired && directFired === testCase.expectBR26 &&
+                (testCase.expectBR27 === undefined || br27Fired === testCase.expectBR27);
 
             console.log(`Test: ${testCase.name}`);
             console.log(`Code: ${testCase.code}`);
-            console.log(`BR26 fired: ${fired} (expected: ${testCase.expectBR26})`);
+            console.log(`Runtime BR26: ${fired} (expected: false); dormant method: ${directFired} (expected: ${testCase.expectBR26})`);
+            if (testCase.expectBR27 !== undefined) {
+                console.log(`BR27 fired: ${br27Fired} (expected: ${testCase.expectBR27})`);
+            }
             console.log(passed ? '✓ PASSED' : '✗ FAILED');
             console.log('---\n');
 

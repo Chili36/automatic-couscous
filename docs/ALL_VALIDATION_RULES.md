@@ -228,15 +228,16 @@ These rules implement complex business logic validation for FoodEx2 codes.
 - **Severity**: HIGH
 
 ### BR26: Mutually Exclusive Processes
+- **Runtime status**: Inactive in normal validation, matching the observed ICT call path. The method below is retained for reference.
 - **Description**: Processes with same ordinal code cannot be used together on derivatives
-- **Condition**: Derivative with multiple processes having same ordinal code
+- **Condition**: Derivative with at least one explicit F28 and duplicate non-zero ordinals in the combined implicit and explicit set
 - **Check**: Compares ordinal codes of all processes (implicit and explicit)
 - **Warning**: "BR26> The selected processes cannot be used together for derivative base term."
 - **Severity**: HIGH
 
 ### BR27: Decimal Ordinal Code
 - **Description**: Processes with decimal ordinal codes create new derivatives
-- **Condition**: Two processes with decimal ordCode and same integer part (at least one explicit)
+- **Condition**: At least two distinct non-integer ordinal values in the same integer family, with at least one explicit process in that family
 - **Warning**: "BR27> Processes that create a new derivative nature cannot be applied to exsisting derivative base terms. Start from a different derivative base term instead."
 - **Severity**: HIGH
 
