@@ -175,7 +175,6 @@ const BUSINESS_RULE_METADATA = [
     { id: 'BR23', name: 'Hierarchy Terms', description: 'Hierarchy terms discouraged' },
     { id: 'BR24', name: 'Non-Exposure Hierarchy', description: 'Must be exposure hierarchy' },
     { id: 'BR25', name: 'Single Cardinality', description: 'One facet per category' },
-    { id: 'BR26', name: 'Mutually Exclusive', description: 'Processes cannot be combined' },
     { id: 'BR27', name: 'Decimal OrdCode', description: 'Process creates new derivative' },
     { id: 'BR28', name: 'Reconstitution', description: 'No reconstitution on dehydrated' }
 ];
@@ -376,7 +375,7 @@ async function startServer() {
             console.log(`API available at http://localhost:${PORT}/api`);
             console.log('\nImplemented validation:');
             console.log('- VBA structural validation');
-            console.log('- All 31 business rules (BR01-BR31)');
+            console.log('- Active business rules (BR26 remains dormant)');
             console.log('- Complete ICT compatibility');
         });
 
@@ -397,5 +396,9 @@ async function startServer() {
     }
 }
 
-// Start the server
-startServer();
+// Importing the app for API tests must not start a production listener.
+if (require.main === module) {
+    startServer();
+}
+
+module.exports = app;
