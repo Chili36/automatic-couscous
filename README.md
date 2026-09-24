@@ -405,7 +405,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-[Specify your license here]
+EUPL 1.2
 
 ## Acknowledgments
 
