@@ -201,6 +201,17 @@ class HierarchyHelper {
     }
 
     /**
+     * Parse all facets (implicit + inherited from the hierarchy) from a term.
+     * The catalogue stores them as a full code, e.g. "A01YM#F01.A057F$F02.A069N".
+     */
+    parseAllFacets(allFacetsString) {
+        if (!allFacetsString) return [];
+        const hashIndex = allFacetsString.indexOf('#');
+        if (hashIndex === -1) return [];
+        return this.parseImplicitFacets(allFacetsString.slice(hashIndex + 1));
+    }
+
+    /**
      * Check if term is concentrate/powder/dehydrated
      */
     isConcentrateOrPowder(term) {

@@ -112,6 +112,14 @@ Each row in `BR_Data.extension.csv` requires a non-empty `RATIONALE` and `ADDED`
 
 If you've added rows you believe should be in the upstream EFSA file, please consider also opening a PR or issue against [openefsa/catalogue-browser](https://github.com/openefsa/catalogue-browser) so other ICT users benefit too. Local extension is a workaround; upstream is the long-term home.
 
+### F02 part-nature equivalents (`BR19+`, `source: 'derived'`)
+
+ICT's BR19 only inspects explicit F28 facets, so a forbidden process can be expressed through an F02 part-nature instead — e.g. `A000L#F02.A068E` (Cereal grains + Flakes as part-nature) encodes the same derivative as the forbidden `A000L#F28.A07LG` (Flaking) but passes stock ICT (issue #29).
+
+The validator closes this gap with a mapping **derived from the catalogue**, not maintained by hand: every term whose `implicit_facets` carry both an F02 and an F28 links that part-nature to that process (`A04QY` Cereal flakes implies `F02.A068E` + `F28.A07LG`). The map is rebuilt from `mtx.db` on first use after startup, so it follows each new MTX release automatically. An explicit F02 on a raw commodity fires `BR19+` (ERROR) when any of its equivalent processes is forbidden for that base term; the warning names the derivative base term to use instead (`suggestedBaseTerm`) and the process it matched (`equivalentProcess`).
+
+Known limitation: generic part-natures that no single derivative pairs with one process ("Processed or preserved meat", "Pickles", drinks, …) have no mapping and are not checked. `STRICT_ICT_PARITY=1` disables this check along with the extension file.
+
 ## Term Types
 
 Understanding term types is crucial for validation:

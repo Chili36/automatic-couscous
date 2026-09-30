@@ -400,6 +400,100 @@ class BusinessRulesValidator {
                 warnings.push(specificWarning);
             }
         }
+
+        await this.checkBR19PartNature(baseTerm, explicitFacets, forbiddenForTerm, warnings);
+    }
+
+    /**
+     * BR19+: Forbidden processes expressed through an F02 part-nature.
+     *
+     * "Flakes (as part-nature)" on a raw grain encodes the same derivative as
+     * F28 Flaking, so it must not slip past BR19. The equivalence comes from
+     * the catalogue (see getF02ProcessEquivalents), not from ICT, so the
+     * warning is labelled BR19+ with source 'derived'.
+     */
+    async checkBR19PartNature(baseTerm, explicitFacets, forbiddenForTerm, warnings) {
+        if (process.env.STRICT_ICT_PARITY === '1') return;
+
+        const equivalents = await this.getF02ProcessEquivalents();
+        const forbiddenCodes = new Set(forbiddenForTerm.map(r => r.forbiddenProcessCode));
+        const baseLineage = new Set([
+            baseTerm.code,
+            ...await this.hierarchyHelper.getAncestors(baseTerm.code, 'report')
+        ]);
+
+        for (const facet of explicitFacets.filter(f => f.startsWith('F02.'))) {
+            const partCode = facet.split('.')[1];
+            const matches = (equivalents.get(partCode) || [])
+                .filter(e => forbiddenCodes.has(e.processCode));
+            if (matches.length === 0) continue;
+
+            // Prefer a derivative whose source commodity (implicit F27) is the
+            // base term or one of its ancestors: that is the term to use instead.
+            const best = matches.find(e => e.sourceCommodities.some(c => baseLineage.has(c))) || matches[0];
+
+            const partRow = await this.db.get(
+                'SELECT extended_name FROM terms WHERE term_code = ?',
+                [partCode]
+            );
+            const partName = partRow ? partRow.extended_name : partCode;
+            const baseTermName = baseTerm.extended_name || baseTerm.name || baseTerm.code;
+
+            const warning = this.createWarning('BR19', partCode);
+            warning.rule = 'BR19+';
+            warning.message = `BR19+> Part-nature ${facet} (${partName}) expresses process F28.${best.processCode} (${best.processName}), which creates a derivative from raw commodity ${baseTerm.code} (${baseTermName}) and is forbidden. Start from the derivative base term ${best.derivativeCode} (${best.derivativeName}) instead. [derived from catalogue: ${best.derivativeCode} implies ${facet} + F28.${best.processCode}]`;
+            warning.facet = facet;
+            warning.source = 'derived';
+            warning.equivalentProcess = best.processCode;
+            warning.suggestedBaseTerm = best.derivativeCode;
+            warnings.push(warning);
+        }
+    }
+
+    /**
+     * Helper: F02 part-nature -> F28 process equivalents, derived from the
+     * catalogue. Every term whose implicit facets carry both an F02 and an F28
+     * links that part-nature to that process (A04QY Cereal flakes implies
+     * F02.A068E Flakes + F28.A07LG Flaking). Rebuilt from the loaded mtx.db,
+     * so it follows each new catalogue version without a maintained list.
+     */
+    async getF02ProcessEquivalents() {
+        if (!this._f02ProcessEquivalents) {
+            this._f02ProcessEquivalents = this._buildF02ProcessEquivalents();
+        }
+        return this._f02ProcessEquivalents;
+    }
+
+    async _buildF02ProcessEquivalents() {
+        const rows = await this.db.all(
+            "SELECT term_code, extended_name, implicit_facets FROM terms WHERE implicit_facets LIKE '%F02.%' AND implicit_facets LIKE '%F28.%'"
+        );
+        const processNames = new Map();
+        const map = new Map();
+
+        for (const row of rows) {
+            const facets = this.hierarchyHelper.parseImplicitFacets(row.implicit_facets);
+            const codesOf = group => facets.filter(f => f.startsWith(group + '.')).map(f => f.split('.')[1]);
+            const sourceCommodities = codesOf('F27');
+
+            for (const partCode of codesOf('F02')) {
+                for (const processCode of codesOf('F28')) {
+                    if (!processNames.has(processCode)) {
+                        const p = await this.db.get('SELECT extended_name FROM terms WHERE term_code = ?', [processCode]);
+                        processNames.set(processCode, p ? p.extended_name : processCode);
+                    }
+                    if (!map.has(partCode)) map.set(partCode, []);
+                    map.get(partCode).push({
+                        processCode,
+                        processName: processNames.get(processCode),
+                        derivativeCode: row.term_code,
+                        derivativeName: row.extended_name,
+                        sourceCommodities
+                    });
+                }
+            }
+        }
+        return map;
     }
 
     /**
