@@ -59,6 +59,16 @@ const testCases = [
         }
     },
     {
+        name: 'Raw dry pulse restating its inherited F02 (Dried legumes) is not a bypass',
+        code: 'A012S#F02.A0ERV',
+        check: result => {
+            const rules = rulesOf(result);
+            assert(!rules.includes('BR19+'), `no BR19+ expected, got ${rules}`);
+            assert(rules.includes('SR10'), `SR10 info expected, got ${rules}`);
+            assert.equal(result.valid, true);
+        }
+    },
+    {
         name: 'Facet not in allFacets gets no redundancy note',
         code: 'A01YM#F28.A07GL',
         check: result => {
@@ -76,6 +86,12 @@ async function testDerivedMap(service) {
     assert(map.get('A068E').some(e => e.processCode === 'A07LG'));
     assert(map.get('A0ELN').some(e => e.processCode === 'A07KG'));
     assert(!map.has('A069N'), 'anatomical part-nature must not map to a process');
+    // A process that only some derivatives of a part-nature carry is extra
+    // processing, not the part-nature itself (dried egg yolk, pulse flour).
+    const processesOf = code => (map.get(code) || []).map(e => e.processCode);
+    assert(processesOf('A06BT').includes('A07LC'));
+    assert(!processesOf('A06BT').includes('A07KG'), 'Egg yolk must not map to Drying');
+    assert(!processesOf('A0ERV').includes('A07LA'), 'Dried legumes must not map to Grinding');
 }
 
 async function testStrictParity() {

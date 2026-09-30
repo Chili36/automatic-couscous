@@ -421,8 +421,11 @@ class BusinessRulesValidator {
             baseTerm.code,
             ...await this.hierarchyHelper.getAncestors(baseTerm.code, 'report')
         ]);
+        // A part-nature the base term already implies (e.g. Dried legumes on
+        // raw dry beans) restates the term; it cannot turn it into a derivative.
+        const impliedFacets = new Set(this.hierarchyHelper.parseAllFacets(baseTerm.all_facets));
 
-        for (const facet of explicitFacets.filter(f => f.startsWith('F02.'))) {
+        for (const facet of explicitFacets.filter(f => f.startsWith('F02.') && !impliedFacets.has(f))) {
             const partCode = facet.split('.')[1];
             const matches = (equivalents.get(partCode) || [])
                 .filter(e => forbiddenCodes.has(e.processCode));
@@ -452,43 +455,65 @@ class BusinessRulesValidator {
 
     /**
      * Helper: F02 part-nature -> F28 process equivalents, derived from the
-     * catalogue. Every term whose implicit facets carry both an F02 and an F28
-     * links that part-nature to that process (A04QY Cereal flakes implies
-     * F02.A068E Flakes + F28.A07LG Flaking). Rebuilt from the loaded mtx.db,
-     * so it follows each new catalogue version without a maintained list.
+     * catalogue. A part-nature is linked to a process when every term that
+     * implies the part-nature also implies the process (A04QY Cereal flakes
+     * implies F02.A068E Flakes + F28.A07LG Flaking). Requiring every term
+     * keeps out extra processing that only some derivatives carry: Egg yolk
+     * does not map to Drying just because Dried egg yolk exists. Rebuilt from
+     * the loaded mtx.db, so it follows each new catalogue version without a
+     * maintained list.
      */
     async getF02ProcessEquivalents() {
         if (!this._f02ProcessEquivalents) {
-            this._f02ProcessEquivalents = this._buildF02ProcessEquivalents();
+            this._f02ProcessEquivalents = this._buildF02ProcessEquivalents()
+                .catch(error => {
+                    this._f02ProcessEquivalents = null;
+                    throw error;
+                });
         }
         return this._f02ProcessEquivalents;
     }
 
     async _buildF02ProcessEquivalents() {
         const rows = await this.db.all(
-            "SELECT term_code, extended_name, implicit_facets FROM terms WHERE implicit_facets LIKE '%F02.%' AND implicit_facets LIKE '%F28.%'"
+            "SELECT term_code, extended_name, implicit_facets FROM terms WHERE implicit_facets LIKE '%F02.%'"
         );
-        const processNames = new Map();
-        const map = new Map();
 
+        // Part-nature -> the terms implying it, with their F28 and F27 codes
+        const termsByPart = new Map();
         for (const row of rows) {
             const facets = this.hierarchyHelper.parseImplicitFacets(row.implicit_facets);
             const codesOf = group => facets.filter(f => f.startsWith(group + '.')).map(f => f.split('.')[1]);
-            const sourceCommodities = codesOf('F27');
-
+            const term = {
+                code: row.term_code,
+                name: row.extended_name,
+                processes: new Set(codesOf('F28')),
+                sourceCommodities: codesOf('F27')
+            };
             for (const partCode of codesOf('F02')) {
-                for (const processCode of codesOf('F28')) {
-                    if (!processNames.has(processCode)) {
-                        const p = await this.db.get('SELECT extended_name FROM terms WHERE term_code = ?', [processCode]);
-                        processNames.set(processCode, p ? p.extended_name : processCode);
-                    }
-                    if (!map.has(partCode)) map.set(partCode, []);
+                if (!termsByPart.has(partCode)) termsByPart.set(partCode, []);
+                termsByPart.get(partCode).push(term);
+            }
+        }
+
+        const processNames = new Map();
+        const map = new Map();
+        for (const [partCode, terms] of termsByPart) {
+            const shared = [...terms[0].processes]
+                .filter(p => terms.every(t => t.processes.has(p)));
+            for (const processCode of shared) {
+                if (!processNames.has(processCode)) {
+                    const p = await this.db.get('SELECT extended_name FROM terms WHERE term_code = ?', [processCode]);
+                    processNames.set(processCode, p ? p.extended_name : processCode);
+                }
+                if (!map.has(partCode)) map.set(partCode, []);
+                for (const term of terms) {
                     map.get(partCode).push({
                         processCode,
                         processName: processNames.get(processCode),
-                        derivativeCode: row.term_code,
-                        derivativeName: row.extended_name,
-                        sourceCommodities
+                        derivativeCode: term.code,
+                        derivativeName: term.name,
+                        sourceCommodities: term.sourceCommodities
                     });
                 }
             }
