@@ -29,8 +29,9 @@ const testCases = [
             assert(hit, `BR19+ expected, got ${rulesOf(result)}`);
             assert.equal(hit.source, 'derived');
             assert.equal(hit.facet, 'F02.A068E');
-            assert.equal(hit.equivalentProcess, 'A07LG');
+            assert.deepEqual(hit.equivalentProcesses, ['A07LG']);
             assert.equal(hit.suggestedBaseTerm, 'A04QY');
+            assert.deepEqual(hit.suggestedBaseTerms, ['A04QY']);
             assert.equal(hit.severity, 'ERROR');
             assert.equal(result.valid, false);
         }
@@ -42,6 +43,31 @@ const testCases = [
             const hit = result.warnings.find(w => w.rule === 'BR19+');
             assert(hit, `BR19+ expected, got ${rulesOf(result)}`);
             assert.equal(hit.suggestedBaseTerm, 'A04KS');
+        }
+    },
+    {
+        name: 'No derivative matches the base commodity: list candidates, do not guess one',
+        code: 'A0DMX#F02.A068V',
+        check: result => {
+            const hit = result.warnings.find(w => w.rule === 'BR19+');
+            assert(hit, `BR19+ expected, got ${rulesOf(result)}`);
+            assert.equal(hit.suggestedBaseTerm, undefined, 'ambiguous: no single suggestion');
+            for (const code of ['A04PQ', 'A03DB']) {
+                assert(hit.suggestedBaseTerms.includes(code), `${code} must be a candidate`);
+                assert(hit.message.includes(code), `message must list ${code}`);
+            }
+        }
+    },
+    {
+        name: 'Part-nature implying several forbidden processes names all of them',
+        code: 'A02LV#F02.A06BN',
+        check: result => {
+            const hit = result.warnings.find(w => w.rule === 'BR19+');
+            assert(hit, `BR19+ expected, got ${rulesOf(result)}`);
+            assert(hit.equivalentProcesses.length > 1, `several processes expected, got ${hit.equivalentProcesses}`);
+            for (const code of hit.equivalentProcesses) {
+                assert(hit.message.includes(`F28.${code}`), `message must name F28.${code}`);
+            }
         }
     },
     {

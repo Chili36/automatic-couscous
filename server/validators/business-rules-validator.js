@@ -431,9 +431,17 @@ class BusinessRulesValidator {
                 .filter(e => forbiddenCodes.has(e.processCode));
             if (matches.length === 0) continue;
 
-            // Prefer a derivative whose source commodity (implicit F27) is the
-            // base term or one of its ancestors: that is the term to use instead.
-            const best = matches.find(e => e.sourceCommodities.some(c => baseLineage.has(c))) || matches[0];
+            // Name every forbidden process the part-nature implies; picking a
+            // "main" one would need judgement the catalogue does not record.
+            const processes = [...new Map(matches.map(e => [e.processCode, e.processName]))];
+
+            // Suggest the derivatives whose source commodity (implicit F27) is
+            // the base term or one of its ancestors. If none is related, list
+            // every candidate rather than guess (Tomatoes + juice: Vegetable
+            // juices and Mixed juices are equally plausible to the catalogue).
+            const related = matches.filter(e => e.sourceCommodities.some(c => baseLineage.has(c)));
+            const candidates = [...new Map((related.length > 0 ? related : matches)
+                .map(e => [e.derivativeCode, e.derivativeName]))];
 
             const partRow = await this.db.get(
                 'SELECT extended_name FROM terms WHERE term_code = ?',
@@ -444,11 +452,19 @@ class BusinessRulesValidator {
 
             const warning = this.createWarning('BR19', partCode);
             warning.rule = 'BR19+';
-            warning.message = `BR19+> Part-nature ${facet} (${partName}) expresses process F28.${best.processCode} (${best.processName}), which creates a derivative from raw commodity ${baseTerm.code} (${baseTermName}) and is forbidden. Start from the derivative base term ${best.derivativeCode} (${best.derivativeName}) instead. [derived from catalogue: ${best.derivativeCode} implies ${facet} + F28.${best.processCode}]`;
+            const processText = processes.map(([code, name]) => `F28.${code} (${name})`).join(', ');
+            const candidateText = candidates.map(([code, name]) => `${code} (${name})`).join(', ');
+            const suggestion = candidates.length === 1
+                ? `Start from the derivative base term ${candidateText} instead.`
+                : `Start from a derivative base term instead, e.g. ${candidateText}.`;
+            warning.message = `BR19+> Part-nature ${facet} (${partName}) expresses forbidden ${processes.length === 1 ? 'process' : 'processes'} ${processText}, which ${processes.length === 1 ? 'creates' : 'create'} a derivative from raw commodity ${baseTerm.code} (${baseTermName}). ${suggestion} [derived from catalogue: every term implying ${facet} also implies ${processes.map(([code]) => `F28.${code}`).join(', ')}]`;
             warning.facet = facet;
             warning.source = 'derived';
-            warning.equivalentProcess = best.processCode;
-            warning.suggestedBaseTerm = best.derivativeCode;
+            warning.equivalentProcesses = processes.map(([code]) => code);
+            warning.suggestedBaseTerms = candidates.map(([code]) => code);
+            if (candidates.length === 1) {
+                warning.suggestedBaseTerm = candidates[0][0];
+            }
             warnings.push(warning);
         }
     }
