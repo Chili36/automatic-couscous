@@ -110,7 +110,7 @@ class VBAValidator {
             SELECT term_code as code, extended_name as name, term_type as type, 
                    detail_level, deprecated, 
                    CASE WHEN status = 'DISMISSED' THEN 1 ELSE 0 END as dismissed,
-                   implicit_facets, term_type
+                   implicit_facets, all_facets, term_type
             FROM terms 
             WHERE term_code = ?
         `, [baseTermCode]);

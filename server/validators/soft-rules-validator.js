@@ -50,6 +50,10 @@ class SoftRulesValidator {
             'SR9': {
                 text: 'Info: Explicit facet is redundant or conflicts with implicit facet already present in base term',
                 severity: 'LOW'
+            },
+            'SR10': {
+                text: 'Info: Explicit facet is already implied by the base term through the hierarchy (allFacets). Not an error: some domains (e.g. VMPR) require it to be transmitted anyway',
+                severity: 'NONE'
             }
         };
     }
@@ -70,6 +74,7 @@ class SoftRulesValidator {
         await this.checkSR7(baseTerm, explicitFacets, warnings);
         await this.checkSR8(baseTerm, explicitFacets, warnings);
         await this.checkSR9(baseTerm, explicitFacets, warnings);
+        await this.checkSR10(baseTerm, explicitFacets, warnings);
 
         return warnings;
     }
@@ -263,6 +268,24 @@ class SoftRulesValidator {
                         `${explicitFacet} (implicit: ${implicitFacet})`
                     ));
                 }
+            }
+        }
+    }
+
+    /**
+     * SR10: Explicit facet already implied through the hierarchy
+     * The facet is in the base term's allFacets (inherited) but not in its
+     * implicitFacets (those are SR9's job). Info only: redundancy is not an
+     * error, and VMPR requires F01/F02 to be transmitted even when implied.
+     */
+    async checkSR10(baseTerm, explicitFacets, warnings) {
+        const allFacets = this.hierarchyHelper.parseAllFacets(baseTerm.all_facets);
+        if (allFacets.length === 0) return;
+
+        const implicitFacets = this.hierarchyHelper.parseImplicitFacets(baseTerm.implicit_facets);
+        for (const explicitFacet of explicitFacets) {
+            if (allFacets.includes(explicitFacet) && !implicitFacets.includes(explicitFacet)) {
+                warnings.push(this.createSoftWarning('SR10', explicitFacet));
             }
         }
     }

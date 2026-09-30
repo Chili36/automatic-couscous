@@ -227,7 +227,7 @@ class FoodEx2Validator {
             valid: isValid,
             originalCode: vbaResult.originalCode,
             cleanedCode: vbaResult.cleanedCode,
-            baseTerm: vbaResult.baseTerm,
+            baseTerm: this.withParsedFacets(vbaResult.baseTerm),
             facets: vbaResult.cleanedFacets || [],
             facetInterpretations,
             interpretedDescription,
@@ -238,6 +238,21 @@ class FoodEx2Validator {
             severity: overallSeverity,
             warningCounts: this.getWarningCounts(allWarnings),
             semaphoreColor: this.getSemaphoreColor(overallSeverity)
+        };
+    }
+
+    /**
+     * Add parsed implicitFacets and allFacets (implicit + inherited from the
+     * hierarchy) to the base term so callers can see which explicit facets
+     * the base term already implies.
+     */
+    withParsedFacets(baseTerm) {
+        if (!baseTerm) return baseTerm;
+        const helper = this.businessRulesValidator.hierarchyHelper;
+        return {
+            ...baseTerm,
+            implicitFacets: helper.parseImplicitFacets(baseTerm.implicit_facets),
+            allFacets: helper.parseAllFacets(baseTerm.all_facets)
         };
     }
 

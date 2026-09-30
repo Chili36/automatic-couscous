@@ -400,6 +400,158 @@ class BusinessRulesValidator {
                 warnings.push(specificWarning);
             }
         }
+
+        await this.checkBR19PartNature(baseTerm, explicitFacets, forbiddenForTerm, warnings);
+    }
+
+    /**
+     * BR19+: Forbidden processes expressed through an F02 part-nature.
+     *
+     * "Flakes (as part-nature)" on a raw grain encodes the same derivative as
+     * F28 Flaking, so it must not slip past BR19. The equivalence comes from
+     * the catalogue (see getF02ProcessEquivalents), not from ICT, so the
+     * warning is labelled BR19+ with source 'derived'.
+     */
+    async checkBR19PartNature(baseTerm, explicitFacets, forbiddenForTerm, warnings) {
+        if (process.env.STRICT_ICT_PARITY === '1') return;
+
+        const equivalents = await this.getF02ProcessEquivalents();
+        const forbiddenCodes = new Set(forbiddenForTerm.map(r => r.forbiddenProcessCode));
+        const baseLineage = new Set([
+            baseTerm.code,
+            ...await this.hierarchyHelper.getAncestors(baseTerm.code, 'report')
+        ]);
+        // A part-nature the base term already implies (e.g. Dried legumes on
+        // raw dry beans) restates the term; it cannot turn it into a derivative.
+        const impliedFacets = new Set(this.hierarchyHelper.parseAllFacets(baseTerm.all_facets));
+
+        for (const facet of explicitFacets.filter(f => f.startsWith('F02.') && !impliedFacets.has(f))) {
+            const partCode = facet.split('.')[1];
+            const matches = (equivalents.get(partCode) || [])
+                .filter(e => forbiddenCodes.has(e.processCode));
+            if (matches.length === 0) continue;
+
+            // Name every forbidden process the part-nature implies; picking a
+            // "main" one would need judgement the catalogue does not record.
+            const processes = [...new Map(matches.map(e => [e.processCode, e.processName]))];
+
+            // Suggest replacement terms. A raw term is never a replacement
+            // (Pulses implies Dried legumes too); derivatives are preferred,
+            // but some part-natures only occur on composite or generic terms
+            // (Fruit nectars), which are still the right term to use. Among
+            // those, prefer terms whose source commodity (implicit F27) is the
+            // base term or an ancestor. If none is related, list every
+            // candidate rather than guess (Tomatoes + juice: Vegetable juices
+            // and Mixed juices are equally plausible to the catalogue).
+            const replaceable = matches.filter(e => e.termType !== 'r');
+            const derivatives = replaceable.filter(e => e.termType === 'd');
+            const pool = derivatives.length > 0 ? derivatives : replaceable;
+            const related = pool.filter(e => e.sourceCommodities.some(c => baseLineage.has(c)));
+            const candidates = [...new Map((related.length > 0 ? related : pool)
+                .map(e => [e.derivativeCode, e]))].map(([, e]) => e);
+
+            const partRow = await this.db.get(
+                'SELECT extended_name FROM terms WHERE term_code = ?',
+                [partCode]
+            );
+            const partName = partRow ? partRow.extended_name : partCode;
+            const baseTermName = baseTerm.extended_name || baseTerm.name || baseTerm.code;
+
+            const warning = this.createWarning('BR19', partCode);
+            warning.rule = 'BR19+';
+            const processText = processes.map(([code, name]) => `F28.${code} (${name})`).join(', ');
+            const typeLabel = { d: 'derivative', s: 'composite', c: 'composite', g: 'generic' };
+            const candidateText = candidates
+                .map(e => `${e.derivativeCode} (${e.derivativeName})`).join(', ');
+            let suggestion;
+            if (candidates.length === 0) {
+                suggestion = 'Start from the existing derivative base term instead.';
+            } else if (candidates.length === 1) {
+                const label = typeLabel[candidates[0].termType];
+                suggestion = `Start from the ${label ? label + ' ' : ''}base term ${candidateText} instead.`;
+            } else {
+                suggestion = `Start from a more specific base term instead, e.g. ${candidateText}.`;
+            }
+            warning.message = `BR19+> Part-nature ${facet} (${partName}) expresses forbidden ${processes.length === 1 ? 'process' : 'processes'} ${processText}, which ${processes.length === 1 ? 'creates' : 'create'} a derivative from raw commodity ${baseTerm.code} (${baseTermName}). ${suggestion} [derived from catalogue: every term implying ${facet} also implies ${processes.map(([code]) => `F28.${code}`).join(', ')}]`;
+            warning.facet = facet;
+            warning.source = 'derived';
+            warning.equivalentProcesses = processes.map(([code]) => code);
+            warning.suggestedBaseTerms = candidates.map(e => e.derivativeCode);
+            if (candidates.length === 1) {
+                warning.suggestedBaseTerm = candidates[0].derivativeCode;
+            }
+            warnings.push(warning);
+        }
+    }
+
+    /**
+     * Helper: F02 part-nature -> F28 process equivalents, derived from the
+     * catalogue. A part-nature is linked to a process when every term that
+     * implies the part-nature also implies the process (A04QY Cereal flakes
+     * implies F02.A068E Flakes + F28.A07LG Flaking). Requiring every term
+     * keeps out extra processing that only some derivatives carry: Egg yolk
+     * does not map to Drying just because Dried egg yolk exists. Rebuilt from
+     * the loaded mtx.db, so it follows each new catalogue version without a
+     * maintained list.
+     */
+    async getF02ProcessEquivalents() {
+        if (!this._f02ProcessEquivalents) {
+            this._f02ProcessEquivalents = this._buildF02ProcessEquivalents()
+                .catch(error => {
+                    this._f02ProcessEquivalents = null;
+                    throw error;
+                });
+        }
+        return this._f02ProcessEquivalents;
+    }
+
+    async _buildF02ProcessEquivalents() {
+        const rows = await this.db.all(
+            "SELECT term_code, extended_name, term_type, implicit_facets FROM terms WHERE implicit_facets LIKE '%F02.%'"
+        );
+
+        // Part-nature -> the terms implying it, with their F28 and F27 codes
+        const termsByPart = new Map();
+        for (const row of rows) {
+            const facets = this.hierarchyHelper.parseImplicitFacets(row.implicit_facets);
+            const codesOf = group => facets.filter(f => f.startsWith(group + '.')).map(f => f.split('.')[1]);
+            const term = {
+                code: row.term_code,
+                name: row.extended_name,
+                type: row.term_type,
+                processes: new Set(codesOf('F28')),
+                sourceCommodities: codesOf('F27')
+            };
+            for (const partCode of codesOf('F02')) {
+                if (!termsByPart.has(partCode)) termsByPart.set(partCode, []);
+                termsByPart.get(partCode).push(term);
+            }
+        }
+
+        const processNames = new Map();
+        const map = new Map();
+        for (const [partCode, terms] of termsByPart) {
+            const shared = [...terms[0].processes]
+                .filter(p => terms.every(t => t.processes.has(p)));
+            for (const processCode of shared) {
+                if (!processNames.has(processCode)) {
+                    const p = await this.db.get('SELECT extended_name FROM terms WHERE term_code = ?', [processCode]);
+                    processNames.set(processCode, p ? p.extended_name : processCode);
+                }
+                if (!map.has(partCode)) map.set(partCode, []);
+                for (const term of terms) {
+                    map.get(partCode).push({
+                        processCode,
+                        processName: processNames.get(processCode),
+                        derivativeCode: term.code,
+                        derivativeName: term.name,
+                        termType: term.type,
+                        sourceCommodities: term.sourceCommodities
+                    });
+                }
+            }
+        }
+        return map;
     }
 
     /**
