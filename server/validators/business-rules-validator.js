@@ -435,13 +435,20 @@ class BusinessRulesValidator {
             // "main" one would need judgement the catalogue does not record.
             const processes = [...new Map(matches.map(e => [e.processCode, e.processName]))];
 
-            // Suggest the derivatives whose source commodity (implicit F27) is
-            // the base term or one of its ancestors. If none is related, list
-            // every candidate rather than guess (Tomatoes + juice: Vegetable
-            // juices and Mixed juices are equally plausible to the catalogue).
-            const related = matches.filter(e => e.sourceCommodities.some(c => baseLineage.has(c)));
-            const candidates = [...new Map((related.length > 0 ? related : matches)
-                .map(e => [e.derivativeCode, e.derivativeName]))];
+            // Suggest replacement terms. A raw term is never a replacement
+            // (Pulses implies Dried legumes too); derivatives are preferred,
+            // but some part-natures only occur on composite or generic terms
+            // (Fruit nectars), which are still the right term to use. Among
+            // those, prefer terms whose source commodity (implicit F27) is the
+            // base term or an ancestor. If none is related, list every
+            // candidate rather than guess (Tomatoes + juice: Vegetable juices
+            // and Mixed juices are equally plausible to the catalogue).
+            const replaceable = matches.filter(e => e.termType !== 'r');
+            const derivatives = replaceable.filter(e => e.termType === 'd');
+            const pool = derivatives.length > 0 ? derivatives : replaceable;
+            const related = pool.filter(e => e.sourceCommodities.some(c => baseLineage.has(c)));
+            const candidates = [...new Map((related.length > 0 ? related : pool)
+                .map(e => [e.derivativeCode, e]))].map(([, e]) => e);
 
             const partRow = await this.db.get(
                 'SELECT extended_name FROM terms WHERE term_code = ?',
@@ -453,17 +460,25 @@ class BusinessRulesValidator {
             const warning = this.createWarning('BR19', partCode);
             warning.rule = 'BR19+';
             const processText = processes.map(([code, name]) => `F28.${code} (${name})`).join(', ');
-            const candidateText = candidates.map(([code, name]) => `${code} (${name})`).join(', ');
-            const suggestion = candidates.length === 1
-                ? `Start from the derivative base term ${candidateText} instead.`
-                : `Start from a derivative base term instead, e.g. ${candidateText}.`;
+            const typeLabel = { d: 'derivative', s: 'composite', c: 'composite', g: 'generic' };
+            const candidateText = candidates
+                .map(e => `${e.derivativeCode} (${e.derivativeName})`).join(', ');
+            let suggestion;
+            if (candidates.length === 0) {
+                suggestion = 'Start from the existing derivative base term instead.';
+            } else if (candidates.length === 1) {
+                const label = typeLabel[candidates[0].termType];
+                suggestion = `Start from the ${label ? label + ' ' : ''}base term ${candidateText} instead.`;
+            } else {
+                suggestion = `Start from a more specific base term instead, e.g. ${candidateText}.`;
+            }
             warning.message = `BR19+> Part-nature ${facet} (${partName}) expresses forbidden ${processes.length === 1 ? 'process' : 'processes'} ${processText}, which ${processes.length === 1 ? 'creates' : 'create'} a derivative from raw commodity ${baseTerm.code} (${baseTermName}). ${suggestion} [derived from catalogue: every term implying ${facet} also implies ${processes.map(([code]) => `F28.${code}`).join(', ')}]`;
             warning.facet = facet;
             warning.source = 'derived';
             warning.equivalentProcesses = processes.map(([code]) => code);
-            warning.suggestedBaseTerms = candidates.map(([code]) => code);
+            warning.suggestedBaseTerms = candidates.map(e => e.derivativeCode);
             if (candidates.length === 1) {
-                warning.suggestedBaseTerm = candidates[0][0];
+                warning.suggestedBaseTerm = candidates[0].derivativeCode;
             }
             warnings.push(warning);
         }
@@ -492,7 +507,7 @@ class BusinessRulesValidator {
 
     async _buildF02ProcessEquivalents() {
         const rows = await this.db.all(
-            "SELECT term_code, extended_name, implicit_facets FROM terms WHERE implicit_facets LIKE '%F02.%'"
+            "SELECT term_code, extended_name, term_type, implicit_facets FROM terms WHERE implicit_facets LIKE '%F02.%'"
         );
 
         // Part-nature -> the terms implying it, with their F28 and F27 codes
@@ -503,6 +518,7 @@ class BusinessRulesValidator {
             const term = {
                 code: row.term_code,
                 name: row.extended_name,
+                type: row.term_type,
                 processes: new Set(codesOf('F28')),
                 sourceCommodities: codesOf('F27')
             };
@@ -529,6 +545,7 @@ class BusinessRulesValidator {
                         processName: processNames.get(processCode),
                         derivativeCode: term.code,
                         derivativeName: term.name,
+                        termType: term.type,
                         sourceCommodities: term.sourceCommodities
                     });
                 }

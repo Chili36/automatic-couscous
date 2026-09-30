@@ -59,6 +59,27 @@ const testCases = [
         }
     },
     {
+        name: 'Raw terms are never suggested as the replacement',
+        code: 'A0DMX#F02.A0ERV',
+        check: result => {
+            const hit = result.warnings.find(w => w.rule === 'BR19+');
+            assert(hit, `BR19+ expected, got ${rulesOf(result)}`);
+            assert(!hit.suggestedBaseTerms.includes('A012R'), 'raw A012R must not be suggested');
+            assert.deepEqual(hit.suggestedBaseTerms, ['A185Q']);
+        }
+    },
+    {
+        name: 'Composite candidate is described accurately, not as a derivative',
+        code: 'A0DMX#F02.A068X',
+        check: result => {
+            const hit = result.warnings.find(w => w.rule === 'BR19+');
+            assert(hit, `BR19+ expected, got ${rulesOf(result)}`);
+            assert.deepEqual(hit.suggestedBaseTerms, ['A03BB']);
+            assert(!hit.message.includes('derivative base term A03BB'), hit.message);
+            assert(hit.message.includes('composite base term A03BB'), hit.message);
+        }
+    },
+    {
         name: 'Part-nature implying several forbidden processes names all of them',
         code: 'A02LV#F02.A06BN',
         check: result => {
