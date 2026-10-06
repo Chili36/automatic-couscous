@@ -15,7 +15,7 @@ This document summarizes all structural validation rules implemented in the VBA 
   - `F` followed by 2 digits (e.g., F01, F28)
   - Mandatory dot separator (.)
   - 5-character alphanumeric descriptor code
-- **Separators**: First facet uses `#`, subsequent facets use `$`
+- **Separators**: `#` exactly once, directly after the base term; facets separated by `$` (ICT requires `#` at position 6 and splits facets on `$` only)
 - **Example**: `A0B9Z#F28.A07JS$F01.A0F6E`
 - **Errors**: 
   - "-Facet group not correct (Fxx)-"
@@ -65,14 +65,14 @@ This document summarizes all structural validation rules implemented in the VBA 
 - **Rule**: Terms containing "feed" in their name get special formatting
 - **Action**: Highlight term in results (no warning)
 
-### Empty Facets
-- **Rule**: Empty or whitespace-only facets are filtered out
-- **Action**: Silent removal (no warning)
+### Facet Separators (`VBA-SEPARATOR`, ERROR)
+- **Rule**: Facets must start with `#` directly after the base term, `#` may appear only once, and no facet may be empty (`$$`, trailing `$`, `A00EN#`)
+- **Action**: Hard error, so the code is invalid. The correctly separated code is offered as `suggestedCode` on the warning and as `cleanedCode`, e.g. `A00EN#F04.A001D#F21.A07SE` → `A00EN#F04.A001D$F21.A07SE` (issue #33)
 
 ## 4. Processing Order
 
 1. **Base term validation** (format and existence)
-2. **Facet string parsing** (split by # and $)
+2. **Separator check** (`VBA-SEPARATOR`), then facet string parsing (split leniently by # and $ so the remaining checks still run)
 3. **Facet structure validation** (Fxx.YYYYY format)
 4. **Facet descriptor existence check**
 5. **Facet category membership check**
