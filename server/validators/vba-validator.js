@@ -30,7 +30,11 @@ class VBAValidator {
             };
         }
 
-        // 2. Parse facets (handle both # and $ separators)
+        // 2. Check separators. Parsing below stays lenient so the rest of the
+        // code is still checked, but a malformed layout is a hard error.
+        const separatorWarning = this.checkSeparators(facetString, warnings);
+
+        // 3. Parse facets (handle both # and $ separators)
         const facets = this.parseFacetString(facetString);
         
         // 3. Validate facet structure
@@ -76,11 +80,18 @@ class VBAValidator {
         const finalCode = baseTermCode + this.buildFacetString(validatedFacets);
         const anyRemoved = implicitRemoved || invalidFacetRemoved;
 
+        // Offer the correctly separated code as a suggestion; the code itself
+        // stays invalid so a caller cannot submit the malformed string.
+        if (separatorWarning) {
+            separatorWarning.suggestedCode = finalCode;
+            separatorWarning.message += ` Suggested: ${finalCode}`;
+        }
+
         return {
             valid: warnings.filter(w => w.severity === 'ERROR').length === 0,
             warnings,
             originalCode: baseTermCode + facetString,
-            cleanedCode: anyRemoved ? finalCode : null,
+            cleanedCode: (anyRemoved || separatorWarning) ? finalCode : null,
             cleanedFacets: validatedFacets,
             baseTerm: baseTermResult.term
         };
@@ -137,6 +148,37 @@ class VBAValidator {
         // Split by # or $ and filter empty strings
         const facets = facetString.split(/[#$]/).filter(f => f.trim());
         return facets;
+    }
+
+    /**
+     * Check facet separators (VBA: Decoders.bas requires '#' right after the
+     * base term, FacetChecker.checkCorrectFacet splits facets on '$' only).
+     * Returns the pushed warning, or null when the layout is correct.
+     */
+    checkSeparators(facetString, warnings) {
+        if (!facetString) return null;
+
+        const problems = [];
+        if (!facetString.startsWith('#')) {
+            problems.push("facets must follow the base term after '#'");
+        }
+        if ((facetString.match(/#/g) || []).length > 1) {
+            problems.push("'#' may appear only once, between the base term and the facets; separate facets with '$'");
+        }
+        const body = facetString.startsWith('#') ? facetString.slice(1) : facetString;
+        if (body.split(/[#$]/).some(segment => segment === '')) {
+            problems.push('empty facet between separators');
+        }
+        if (problems.length === 0) return null;
+
+        const warning = {
+            rule: 'VBA-SEPARATOR',
+            message: `Invalid facet separators: ${problems.join('; ')}. Format: BASE#Fxx.YYYYY$Fxx.YYYYY.`,
+            severity: 'ERROR',
+            type: 'STRUCTURE'
+        };
+        warnings.push(warning);
+        return warning;
     }
 
     /**
