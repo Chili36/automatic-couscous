@@ -522,10 +522,13 @@ function renderResults() {
             const warnings = result.warnings || []
             const hasImplicit = warnings.some(w => w.rule === 'VBA-IMPLICIT')
             const hasInvalid = warnings.some(w => w.rule === 'VBA-CATEGORY' || w.rule === 'VBA-FACET404')
-            if (hasImplicit && hasInvalid) return 'implicit and invalid facets removed'
-            if (hasImplicit) return 'implicit facets removed'
-            if (hasInvalid) return 'invalid facets removed'
-            return 'facets removed'
+            const hasSeparator = warnings.some(w => w.rule === 'VBA-SEPARATOR')
+            const reasons = []
+            if (hasSeparator) reasons.push("separators corrected ('#' once, '$' between facets)")
+            if (hasImplicit && hasInvalid) reasons.push('implicit and invalid facets removed')
+            else if (hasImplicit) reasons.push('implicit facets removed')
+            else if (hasInvalid) reasons.push('invalid facets removed')
+            return reasons.length > 0 ? reasons.join('; ') : 'facets removed'
           })()} — see warnings below)</span>
         </div>
       ` : ''}
