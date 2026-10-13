@@ -23,7 +23,10 @@ const invalidCases = [
     { name: "no separator after the base term", code: 'A00ENF04.A001D' },
     { name: 'empty facet between separators', code: 'A00EN#F04.A001D$$F21.A07SE' },
     { name: "trailing '$'", code: 'A00EN#F04.A001D$' },
-    { name: "'#' with no facets", code: 'A00EN#' }
+    { name: "'#' with no facets", code: 'A00EN#' },
+    { name: 'whitespace-only facet between separators', code: 'A00EN#F04.A001D$   $F21.A07SE' },
+    { name: "'#' followed by whitespace only", code: 'A00EN#   ' },
+    { name: "trailing '$' followed by whitespace", code: 'A00EN#F04.A001D$ ' }
 ];
 
 const validCases = [

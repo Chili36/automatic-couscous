@@ -166,7 +166,8 @@ class VBAValidator {
             problems.push("'#' may appear only once, between the base term and the facets; separate facets with '$'");
         }
         const body = facetString.startsWith('#') ? facetString.slice(1) : facetString;
-        if (body.split(/[#$]/).some(segment => segment === '')) {
+        // Whitespace-only segments count as empty: parseFacetString drops them.
+        if (body.split(/[#$]/).some(segment => segment.trim() === '')) {
             problems.push('empty facet between separators');
         }
         if (problems.length === 0) return null;
