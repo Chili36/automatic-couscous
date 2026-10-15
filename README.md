@@ -244,8 +244,7 @@ The validator uses an SQLite database (`data/mtx.db`) containing:
 - `term_hierarchies` - Many-to-many relationships
 - `catalogue` - MTX catalogue metadata and version info
 - `release_notes` - Version history and update tracking
-- `business_rules` - Business rule definitions
-- `forbidden_processes` - Invalid process combinations
+- `business_rules`, `forbidden_processes` - legacy tables from an earlier pipeline, not read by the validator (rules load from `data/BR_Data.csv` and `data/warningMessages.txt` at startup)
 
 ### Database Version Information
 

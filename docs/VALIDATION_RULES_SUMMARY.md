@@ -106,10 +106,12 @@ F01, F02, F03, F07, F11, F22, F24, F26, F30, F32
 
 ### Required Database Tables
 - `terms`: Base terms and facets
-- `term_hierarchy_relationships`: Hierarchy memberships
-- `forbidden_processes`: Process restrictions (BR_Data.csv)
-- `facet_groups`: Valid facet categories
+- `term_hierarchies`: Hierarchy memberships
+- `hierarchies`: Hierarchy definitions
 - `attributes`: Term attributes (implicit facets, etc.)
+- `catalogue` / `release_notes`: Catalogue metadata and version history
+
+Forbidden-process restrictions are not read from a database table — they load from `data/BR_Data.csv` (and `data/BR_Data.extension.csv`) at startup.
 
 ### Required Files
 - `BR_Data.csv`: Forbidden process mappings

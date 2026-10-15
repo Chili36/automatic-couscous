@@ -34,8 +34,8 @@ The FoodEx2 Code Validator follows a traditional client-server architecture with
 │     Validators        │        Database Layer                │
 │  ┌──────────────┐    │    ┌─────────────────────┐          │
 │  │ VBA Rules    │    │    │  SQLite Database    │          │
-│  ├──────────────┤    │    │   MTX v17.0         │          │
-│  │Business Rules│    │    │  31,652 terms       │          │
+│  ├──────────────┤    │    │   MTX v17.2         │          │
+│  │Business Rules│    │    │  31,705 terms       │          │
 │  ├──────────────┤    │    └─────────────────────┘          │
 │  │ Soft Rules   │    │                                      │
 │  └──────────────┘    │                                      │
@@ -119,13 +119,9 @@ npm run build
 automatic-couscous/
 ├── client/                      # Frontend application
 │   ├── src/
-│   │   ├── js/
-│   │   │   ├── api.js          # API client
-│   │   │   ├── validator.js    # Client-side validation
-│   │   │   └── search.js       # Search functionality
-│   │   ├── css/
-│   │   │   └── styles.css      # Application styles
-│   │   └── index.html          # Main HTML file
+│   │   ├── main.js             # Application logic
+│   │   └── style.css           # Application styles
+│   ├── index.html              # Main HTML file
 │   ├── public/                 # Static assets
 │   └── vite.config.js          # Vite configuration
 │
@@ -134,21 +130,25 @@ automatic-couscous/
 │   ├── database.js            # Database connection and queries
 │   ├── foodex2-service.js    # Main service orchestration
 │   ├── validators/            # Validation modules
+│   │   ├── foodex2-validator.js  # Validation orchestrator
 │   │   ├── vba-validator.js  # VBA structural rules
 │   │   ├── business-rules-validator.js
 │   │   ├── soft-rules-validator.js
-│   │   └── hierarchy-helper.js
+│   │   ├── hierarchy-helper.js
+│   │   └── data-loader.js    # Loads BR_Data.csv, warningMessages.txt
 │   └── import-excel.js       # Excel import utilities
 │
 ├── data/                      # Data files
 │   ├── mtx.db                # SQLite database
-│   ├── business-rules.json   # Rule definitions
-│   └── forbidden-processes.json
+│   ├── BR_Data.csv           # Forbidden process rules (EFSA)
+│   ├── BR_Data.extension.csv # BR19+ extension rules
+│   ├── warningMessages.txt   # Business rule messages
+│   └── warningColors.txt     # UI warning colors
 │
-├── test/                      # Test files
-│   ├── unit/                 # Unit tests
-│   ├── integration/          # Integration tests
-│   └── fixtures/             # Test data
+├── test/                      # Test files (flat node scripts)
+│   ├── test-validation.js    # Main validation suite (npm test)
+│   ├── test-br26.js          # BR26 regression suite (npm test)
+│   └── test-api.js           # API tests
 │
 ├── docs/                     # Documentation
 ├── scripts/                  # Utility scripts

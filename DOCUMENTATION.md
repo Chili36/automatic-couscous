@@ -7,7 +7,7 @@ This project is a Node.js implementation of the EFSA FoodEx2 code validation sys
 ### Key Features
 
 - Complete implementation of all 31 EFSA business rules
-- Database-driven validation (no runtime CSV loading)
+- Database-driven term data, with business-rule configuration (`BR_Data.csv`, `warningMessages.txt`, `warningColors.txt`) loaded from `data/` at startup
 - Modern web interface with real-time validation
 - REST API for integration with other systems
 - Batch validation support
@@ -44,7 +44,7 @@ graph TB
     end
     
     subgraph "Data Layer"
-        DB[(SQLite Database<br/>MTX v17.0<br/>31,680 terms)]
+        DB[(SQLite Database<br/>MTX v17.2<br/>31,705 terms)]
         Cache[Cache Manager<br/>TTL: 3600s]
     end
     
@@ -98,7 +98,7 @@ foodex2-validator/
 │   ├── index.html             # Entry point
 │   └── vite.config.js         # Vite configuration
 ├── data/                       # Data files
-│   ├── mtx.db                 # SQLite database (31,619 terms)
+│   ├── mtx.db                 # SQLite database (31,705 terms)
 │   ├── BR_Data.csv            # Forbidden processes definitions
 │   ├── warningMessages.txt    # Business rule messages
 │   └── warningColors.txt      # UI warning colors
@@ -272,10 +272,10 @@ erDiagram
     }
 ```
 
-The SQLite database (converted from MTX Excel) contains:
+The SQLite database (converted from MTX Excel) contains the tables below. Note: `process_ordcodes`, `forbidden_processes`, `business_rules`, and `warning_colors` are leftovers from an earlier pipeline and are not read by the validator — business-rule configuration loads from `data/BR_Data.csv`, `data/warningMessages.txt`, and `data/warningColors.txt` at startup.
 
 ```sql
--- Main terms table (31,680 records)
+-- Main terms table (31,705 records)
 CREATE TABLE terms (
     term_code TEXT PRIMARY KEY,      -- e.g., 'A0B9Z'
     extended_name TEXT,              -- e.g., 'Bovine meat'
@@ -288,7 +288,7 @@ CREATE TABLE terms (
     -- ... additional fields
 );
 
--- Term hierarchy relationships (88,817 records)
+-- Term hierarchy relationships (88,880 records)
 CREATE TABLE term_hierarchies (
     term_code TEXT,
     hierarchy_code TEXT,             -- expo, report, master, etc.
